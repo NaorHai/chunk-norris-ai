@@ -4,6 +4,7 @@ import tempfile
 import uuid
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
+import argparse
 
 # Import our new modular services
 from services.factory import DocumentProcessorFactory
@@ -218,5 +219,14 @@ def generate_memory_graph():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    # Use 0.0.0.0 to allow external access and port 8080 to avoid conflicts
-    app.run(debug=True, host='0.0.0.0', port=8080) 
+    # Set up command line argument parsing
+    parser = argparse.ArgumentParser(description='Chuck Norris AI - Document to Markdown Converter')
+    parser.add_argument('--port', type=int, default=8080, help='Port to run the server on (default: 8080)')
+    parser.add_argument('--host', type=str, default='0.0.0.0', help='Host to run the server on (default: 0.0.0.0)')
+    parser.add_argument('--debug', action='store_true', help='Run in debug mode')
+    
+    # Parse arguments
+    args = parser.parse_args()
+    
+    # Use the parsed arguments
+    app.run(debug=args.debug or True, host=args.host, port=args.port) 
