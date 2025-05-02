@@ -425,45 +425,45 @@
                     <form id="upload-form" class="my-3" enctype="multipart/form-data">
                         <p class="mb-4 text-gray-600">Drag & drop files here or click to select files</p>
                         <input type="file" id="file-input" name="file" accept=".pdf,.docx,.doc,.rtf,.png,.jpg,.jpeg,.txt" class="hidden">
-                        <button type="button" id="select-file-btn" class="bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-8 rounded-full shadow-md transition-all transform hover:scale-105 hover:-translate-y-0.5 duration-300">
+                        <label for="file-input" class="bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-8 rounded-full shadow-md transition-all transform hover:scale-105 hover:-translate-y-0.5 duration-300 cursor-pointer inline-block focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50">
                             Select a File
-                        </button>
+                        </label>
                         
                         <!-- AI Refinement checkbox -->
                         <div class="mt-8 mb-4">
-                            <div class="flex items-left">
+                            <div class="flex items-start">
                                 <input class="w-5 h-5 text-primary-500 focus:ring-primary-400 rounded" type="checkbox" id="use-ai-refinement" checked>
-                                <label class="ml-2 text-gray-700 font-medium" for="use-ai-refinement items-left">
+                                <label class="ml-2 text-gray-700 font-medium" for="use-ai-refinement">
                                     Use AI to improve markdown formatting and structure
                                 </label>
                             </div>
-                            <p class="text-sm text-gray-500 mt-1 ml-7 items-left">
+                            <p class="text-sm text-gray-500 mt-1 ml-7">
                                 This uses OpenAI's GPT-4o Mini to enhance the document structure and fix formatting issues.
                             </p>
                         </div>
                         
                         <!-- Chuck Norris AI checkbox -->
                         <div class="mt-6 mb-4">
-                            <div class="flex items-left">
+                            <div class="flex items-start">
                                 <input class="w-5 h-5 text-secondary-500 focus:ring-secondary-400 rounded" type="checkbox" id="use-chuck-norris-ai">
                                 <label class="ml-2 text-gray-700" for="use-chuck-norris-ai">
-                                    <span class="font-semibold flex items-left">
+                                    <span class="font-semibold flex items-center">
                                         Chuck Norris AI
                                         <span class="inline-flex ml-2 bg-secondary-500 text-white rounded-full h-6 w-6 items-center justify-center">💪</span>
                                     </span>
                                 </label>
                             </div>
-                            <p class="text-sm text-gray-500 mt-1 ml-7 items-left">
+                            <p class="text-sm text-gray-500 mt-1 ml-7">
                                 Bypass OCR completely and let AI directly interpret the image content. For images with complex layouts or when OCR is struggling.
                             </p>
                         </div>
                         
                         <!-- Chuck Norris AI PRO checkbox -->
                         <div class="mt-3 mb-4">
-                            <div class="flex items-left">
+                            <div class="flex items-start">
                                 <input class="w-5 h-5 text-red-500 focus:ring-red-400 rounded" type="checkbox" id="use-chuck-norris-ai-pro">
                                 <label class="ml-2 text-gray-700" for="use-chuck-norris-ai-pro">
-                                    <span class="font-semibold flex items-left">
+                                    <span class="font-semibold flex items-center">
                                         Chuck Norris AI PRO
                                         <span class="inline-flex ml-2 bg-red-500 text-white rounded-full px-2 text-xs font-bold">PRO</span>
                                     </span>
@@ -537,7 +537,7 @@
         // Get DOM elements
         const dropArea = document.getElementById('drop-area');
         const fileInput = document.getElementById('file-input');
-        const selectButton = document.getElementById('select-file-btn');
+        const fileInputLabel = document.querySelector('label[for="file-input"]');
         const uploadForm = document.getElementById('upload-form');
         const fileInfo = document.getElementById('file-info');
         const fileName = document.getElementById('file-name');
@@ -588,16 +588,22 @@
         });
         
         // Close popup when button is clicked
-        document.getElementById('close-pro-popup').addEventListener('click', function() {
-            document.getElementById('pro-overlay').style.display = 'none';
-            document.getElementById('chuck-norris-pro-popup').style.display = 'none';
-        });
+        const closeProPopupBtn = document.getElementById('close-pro-popup');
+        if (closeProPopupBtn) {
+            closeProPopupBtn.addEventListener('click', function() {
+                document.getElementById('pro-overlay').style.display = 'none';
+                document.getElementById('chuck-norris-pro-popup').style.display = 'none';
+            });
+        }
         
         // Also close popup when clicking on overlay
-        document.getElementById('pro-overlay').addEventListener('click', function() {
-            document.getElementById('pro-overlay').style.display = 'none';
-            document.getElementById('chuck-norris-pro-popup').style.display = 'none';
-        });
+        const proOverlay = document.getElementById('pro-overlay');
+        if (proOverlay) {
+            proOverlay.addEventListener('click', function() {
+                document.getElementById('pro-overlay').style.display = 'none';
+                document.getElementById('chuck-norris-pro-popup').style.display = 'none';
+            });
+        }
 
         // Toggle between raw and rendered markdown
         showRenderedToggle.addEventListener('change', function() {
@@ -665,13 +671,8 @@
             }
         }
 
-        // Handle file selection
-        selectButton.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log('Select button clicked');
-            fileInput.click();
-        });
-
+        // The label already has a 'for' attribute that triggers the file input
+        // So we don't need to manually trigger the click
         fileInput.addEventListener('change', function(e) {
             console.log('File input changed', this.files);
             if (this.files && this.files.length) {
