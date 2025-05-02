@@ -502,6 +502,8 @@ def process_image_with_gpt4o(image_path):
         "Authorization": f"Bearer {api_key}"
     }
     
+    print("Using Chuck Norris AI for image processing, bypassing OCR...")
+    
     # Create the payload with the image and prompt
     payload = {
         "model": "gpt-4o-mini",
@@ -515,7 +517,7 @@ def process_image_with_gpt4o(image_path):
                 "content": [
                     {
                         "type": "text",
-                        "text": "This is an image of a document or text. Please analyze the layout first, detecting whether it has columns, tables, sections, or other complex layouts. Then, extract all content and convert it to clean, well-structured markdown. Follow these steps:\n\n1. Analyze the layout (columns, reading order, tables, etc.)\n2. Extract the full text content\n3. Convert to properly structured markdown with appropriate headings, lists, tables, etc.\n4. Return ONLY the valid markdown output without additional explanations\n5. Ensure all markdown syntax is correct and properly formatted\n6. For any icons, symbols, or special characters that cannot be represented in plain text, describe them within square brackets (e.g., [checkmark icon], [arrow pointing right], etc.)"
+                        "text": "This is an image of a document or text. Please analyze the layout first, detecting whether it has columns, tables, sections, flow charts, or other complex layouts. Then, extract all content and convert it to clean, well-structured markdown. Follow these steps:\n\n1. Analyze the layout (columns, reading order, tables, flow charts, etc.)\n2. Extract the full text content\n3. Convert to properly structured markdown with appropriate headings, lists, tables, etc.\n4. Return ONLY the valid markdown output without additional explanations\n5. Ensure all markdown syntax is correct and properly formatted\n6. For any icons, symbols, or special characters that cannot be represented in plain text, describe them within square brackets (e.g., [checkmark icon], [arrow pointing right], etc.)\n\nIMPORTANT - FOR FLOW CHARTS AND DIAGRAMS:\n- If the image contains a flow chart or diagram, represent its structure in markdown\n- Show the steps in a structured way (e.g., using ordered lists or bullet points to represent the flow)\n- For each step or element in the diagram, provide a concise one-sentence description\n- Keep the flow and relationships between elements clear in your representation\n- Do not just extract the text without the structural relationships"
                     },
                     {
                         "type": "image_url",
