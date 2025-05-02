@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File to Markdown Converter</title>
+    <title>Chuck Norris AI - Document to Markdown Converter</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- PDF.js library -->
@@ -56,10 +56,23 @@
             background-color: #e9ecef;
         }
         header {
-            background-color: #343a40;
+            background-color: #0f1d2d;
             color: white;
-            padding: 10px 0;
+            padding: 15px 0;
             margin-bottom: 20px;
+        }
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .logo {
+            height: 120px;
+            width: auto;
+            margin-right: 15px;
+            position: absolute;
+            left:0;
         }
         #file-info {
             margin-top: 15px;
@@ -252,12 +265,36 @@
             justify-content: flex-end;
             margin-bottom: 10px;
         }
+        /* Chuck Norris Loading Animation */
+        .chuck-norris-loader {
+            width: 150px;
+            height: 150px;
+            margin: 20px auto;
+            display: none;
+            position: relative;
+        }
+
+        .chuck-norris-loader img {
+            width: 100%;
+            height: 100%;
+            animation: pulse 1.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); filter: brightness(0.9) drop-shadow(0 0 3px #ff9900); }
+            100% { transform: scale(1.1); filter: brightness(1.1) drop-shadow(0 0 8px #3498db); }
+        }
     </style>
 </head>
 <body>
     <header class="text-center">
-        <h1>File to Markdown Converter</h1>
-        <p>Upload a document (PDF, DOCX, RTF, images) and see the markdown conversion</p>
+        <div class="logo-container">
+            <img src="/static/images/logo.png" alt="Document Converter Logo" class="logo">
+            <div>
+                <h1>Document to Markdown Converter</h1>
+                <p>Upload a document (PDF, DOCX, RTF, images) and see the markdown conversion</p>
+            </div>
+        </div>
     </header>
 
     <div class="container app-container">
@@ -284,7 +321,7 @@
                         <div class="form-check mt-3 mb-3">
                             <input class="form-check-input" type="checkbox" id="use-chuck-norris-ai">
                             <label class="form-check-label" for="use-chuck-norris-ai">
-                                <span class="fw-bold">Chuck Norris AI 💪</span>
+                                <span class="fw-bold">Chunck Norris AI 💪</span>
                             </label>
                             <small class="form-text text-muted d-block">
                                 Bypass OCR completely and let AI directly interpret the image content. For images with complex layouts or when OCR is struggling.
@@ -295,6 +332,9 @@
                         <p><strong>Selected File:</strong> <span id="file-name"></span></p>
                     </div>
                     <div class="loader" id="loader"></div>
+                    <div class="chuck-norris-loader" id="chuck-norris-loader">
+                        <img src="/static/images/chuck_norris_loading.svg" alt="Chuck Norris AI loading">
+                    </div>
                 </div>
             </div>
         </div>
@@ -347,6 +387,7 @@
         const fileContent = document.getElementById('file-content');
         const markdownContent = document.getElementById('markdown-content');
         const loader = document.getElementById('loader');
+        const chuckNorrisLoader = document.getElementById('chuck-norris-loader');
         const copyMarkdownBtn = document.getElementById('copy-markdown');
         const showRenderedToggle = document.getElementById('show-rendered');
         
@@ -358,6 +399,20 @@
         
         // Store the raw markdown
         let rawMarkdown = '';
+
+        // Add event listener for Chuck Norris AI checkbox
+        document.getElementById('use-chuck-norris-ai').addEventListener('change', function() {
+            // If we're currently loading, switch loaders
+            if (loader.style.display === 'block' || chuckNorrisLoader.style.display === 'block') {
+                if (this.checked) {
+                    loader.style.display = 'none';
+                    chuckNorrisLoader.style.display = 'block';
+                } else {
+                    loader.style.display = 'block';
+                    chuckNorrisLoader.style.display = 'none';
+                }
+            }
+        });
 
         // Toggle between raw and rendered markdown
         showRenderedToggle.addEventListener('change', function() {
@@ -437,8 +492,15 @@
             fileName.textContent = file.name;
             fileInfo.classList.remove('d-none');
             
-            // Show loading indicator
-            loader.style.display = 'block';
+            // Add the Chuck Norris AI preference
+            const useChuckNorrisAi = document.getElementById('use-chuck-norris-ai').checked;
+            
+            // Show appropriate loading indicator
+            if (useChuckNorrisAi) {
+                chuckNorrisLoader.style.display = 'block';
+            } else {
+                loader.style.display = 'block';
+            }
             
             // Clear previous content
             fileContent.innerHTML = '<p>Processing file...</p>';
@@ -456,7 +518,6 @@
             formData.append('use_ai_refinement', useAiRefinement);
             
             // Add the Chuck Norris AI preference
-            const useChuckNorrisAi = document.getElementById('use-chuck-norris-ai').checked;
             formData.append('use_chuck_norris_ai', useChuckNorrisAi);
             
             fetch('/upload', {
@@ -470,8 +531,9 @@
                 return response.json();
             })
             .then(data => {
-                // Hide loader
+                // Hide loaders
                 loader.style.display = 'none';
+                chuckNorrisLoader.style.display = 'none';
                 
                 if (data.success) {
                     // Store the raw markdown
@@ -496,6 +558,7 @@
             .catch(error => {
                 console.error('Error:', error);
                 loader.style.display = 'none';
+                chuckNorrisLoader.style.display = 'none';
                 markdownContent.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
             });
         }
@@ -620,15 +683,140 @@
                 reader.onload = function(e) {
                     const textPreview = `
                         <div class="file-content-preview">
-                            <pre>${e.target.result}</pre>
+                            <div class="text-preview">${e.target.result}</div>
                         </div>
                     `;
                     fileContent.innerHTML = fileInfoHTML + textPreview;
                 };
                 reader.readAsText(file);
                 return;
+            } else if (fileType.includes('pdf')) {
+                // For PDFs, use PDF.js to render preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const pdfData = new Uint8Array(e.target.result);
+                    
+                    // Add zoom controls to the original file tools
+                    document.getElementById('original-file-tools').innerHTML = `
+                        <button id="download-pdf" class="btn btn-sm btn-outline-secondary btn-tool">
+                            <i class="fas fa-download"></i> Download
+                        </button>
+                    `;
+                    
+                    // Create PDF viewer container
+                    contentPreviewHTML = `
+                        <div id="pdf-container" class="file-content-preview">
+                            <div class="pdf-controls">
+                                <button id="prev-page" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-chevron-left"></i> Previous
+                                </button>
+                                <span id="page-info" class="mx-3">Page: 1 / ?</span>
+                                <button id="next-page" class="btn btn-sm btn-primary">
+                                    Next <i class="fas fa-chevron-right"></i>
+                                </button>
+                                <div class="zoom-controls ms-3">
+                                    <button id="zoom-out" class="zoom-button"><i class="fas fa-search-minus"></i></button>
+                                    <span id="zoom-level">150%</span>
+                                    <button id="zoom-in" class="zoom-button"><i class="fas fa-search-plus"></i></button>
+                                </div>
+                            </div>
+                            <canvas id="pdf-viewer"></canvas>
+                        </div>
+                    `;
+                    
+                    fileContent.innerHTML = fileInfoHTML + contentPreviewHTML;
+                    
+                    // Set up download button
+                    document.getElementById('download-pdf').addEventListener('click', () => {
+                        const blob = new Blob([e.target.result], { type: 'application/pdf' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = file.name;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    });
+                    
+                    // Load the PDF
+                    pdfjsLib.getDocument({ data: pdfData }).promise.then(pdfDoc => {
+                        currentPdfDoc = pdfDoc;
+                        totalPages = pdfDoc.numPages;
+                        document.getElementById('page-info').textContent = `Page: ${currentPage} / ${totalPages}`;
+                        renderPage(currentPage);
+                        
+                        // Add event listeners for navigation
+                        document.getElementById('prev-page').addEventListener('click', () => {
+                            if (currentPage > 1) {
+                                currentPage--;
+                                renderPage(currentPage);
+                            }
+                        });
+                        
+                        document.getElementById('next-page').addEventListener('click', () => {
+                            if (currentPage < totalPages) {
+                                currentPage++;
+                                renderPage(currentPage);
+                            }
+                        });
+                        
+                        // Add zoom controls
+                        document.getElementById('zoom-in').addEventListener('click', () => {
+                            if (currentScale < 3) {
+                                currentScale += 0.25;
+                                renderPage(currentPage);
+                                updateZoomLevel();
+                            }
+                        });
+                        
+                        document.getElementById('zoom-out').addEventListener('click', () => {
+                            if (currentScale > 0.5) {
+                                currentScale -= 0.25;
+                                renderPage(currentPage);
+                                updateZoomLevel();
+                            }
+                        });
+                    }).catch(error => {
+                        console.error('Error loading PDF:', error);
+                        fileContent.innerHTML = fileInfoHTML + `
+                            <div class="file-content-preview">
+                                <div class="alert alert-danger">
+                                    Error loading PDF preview: ${error.message}
+                                </div>
+                            </div>
+                        `;
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+                return;
+            } else if (fileType.includes('word') || file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
+                contentPreviewHTML = `
+                    <div class="file-content-preview">
+                        <div class="docx-preview">
+                            <p>DOCX content preview not available in browser.</p>
+                            <p>Markdown conversion will be displayed on the right panel.</p>
+                        </div>
+                    </div>
+                `;
+            } else if (fileType.includes('rtf') || file.name.endsWith('.rtf')) {
+                contentPreviewHTML = `
+                    <div class="file-content-preview">
+                        <div class="rtf-preview">
+                            <p>RTF content preview not available in browser.</p>
+                            <p>Markdown conversion will be displayed on the right panel.</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                contentPreviewHTML = `
+                    <div class="file-content-preview">
+                        <p>No preview available for this file type.</p>
+                        <p>Markdown conversion will be displayed on the right panel.</p>
+                    </div>
+                `;
             }
-            
+
             fileContent.innerHTML = fileInfoHTML + contentPreviewHTML;
         }
     </script>

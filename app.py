@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 from file_parsers import convert_to_markdown, refine_markdown_with_llm
 from flask_cors import CORS
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static', static_folder='static')
 CORS(app)  # Enable CORS for all routes
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 app.config['IMAGES_FOLDER'] = os.path.join(app.config['UPLOAD_FOLDER'], 'images')
