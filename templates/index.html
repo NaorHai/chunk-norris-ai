@@ -4,12 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chuck Norris AI - Document to Markdown Converter</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- PDF.js library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <!-- Marked.js for markdown rendering -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#0f1d2d",
+                        secondary: "#ff9900",
+                        accent: "#3498db",
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -286,52 +301,58 @@
         }
     </style>
 </head>
-<body>
-    <header class="text-center">
-        <div class="logo-container">
-            <img src="/static/images/logo.png" alt="Document Converter Logo" class="logo">
-            <div>
-                <h1>Document to Markdown Converter</h1>
-                <p>Upload a document (PDF, DOCX, RTF, images) and see the markdown conversion</p>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <header class="bg-primary text-white py-5 shadow-md">
+        <div class="container mx-auto px-4 flex items-center">
+            <img src="/static/images/logo.png" alt="Document Converter Logo" class="h-24 absolute left-0">
+            <div class="text-center w-full">
+                <h1 class="text-3xl font-bold mb-1">Document to Markdown Converter</h1>
+                <p class="text-gray-300">Upload a document (PDF, DOCX, RTF, images) and see the markdown conversion</p>
             </div>
         </div>
     </header>
 
-    <div class="container app-container">
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <div id="drop-area">
+    <div class="container mx-auto px-4 flex-1 flex flex-col py-6">
+        <div class="mb-6">
+            <div class="w-full">
+                <div id="drop-area" class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-white transition-all hover:bg-gray-50">
                     <form id="upload-form" class="my-3">
-                        <p>Drag & drop files here or click to select files</p>
-                        <input type="file" id="file-input" accept=".pdf,.docx,.doc,.rtf,.png,.jpg,.jpeg,.txt" class="d-none">
-                        <button id="select-button" type="button" class="btn btn-primary">Select a File</button>
+                        <p class="mb-3 text-gray-600">Drag & drop files here or click to select files</p>
+                        <input type="file" id="file-input" accept=".pdf,.docx,.doc,.rtf,.png,.jpg,.jpeg,.txt" class="hidden">
+                        <button id="select-button" type="button" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-full shadow-sm transition-all">
+                            Select a File
+                        </button>
                         
                         <!-- AI Refinement checkbox -->
-                        <div class="form-check mt-3 mb-3">
-                            <input class="form-check-input" type="checkbox" id="use-ai-refinement" checked>
-                            <label class="form-check-label" for="use-ai-refinement">
-                                Use AI to improve markdown formatting and structure
-                            </label>
-                            <small class="form-text text-muted d-block">
+                        <div class="mt-6 mb-3">
+                            <div class="flex items-center">
+                                <input class="w-4 h-4 text-accent focus:ring-accent rounded" type="checkbox" id="use-ai-refinement" checked>
+                                <label class="ml-2 text-gray-700" for="use-ai-refinement">
+                                    Use AI to improve markdown formatting and structure
+                                </label>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1 ml-6">
                                 This uses OpenAI's GPT-4o Mini to enhance the document structure and fix formatting issues.
-                            </small>
+                            </p>
                         </div>
                         
                         <!-- Chuck Norris AI checkbox -->
-                        <div class="form-check mt-3 mb-3">
-                            <input class="form-check-input" type="checkbox" id="use-chuck-norris-ai">
-                            <label class="form-check-label" for="use-chuck-norris-ai">
-                                <span class="fw-bold">Chunck Norris AI 💪</span>
-                            </label>
-                            <small class="form-text text-muted d-block">
+                        <div class="mt-6 mb-3">
+                            <div class="flex items-center">
+                                <input class="w-4 h-4 text-secondary focus:ring-secondary rounded" type="checkbox" id="use-chuck-norris-ai">
+                                <label class="ml-2 text-gray-700" for="use-chuck-norris-ai">
+                                    <span class="font-bold">Chuck Norris AI 💪</span>
+                                </label>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1 ml-6">
                                 Bypass OCR completely and let AI directly interpret the image content. For images with complex layouts or when OCR is struggling.
-                            </small>
+                            </p>
                         </div>
                     </form>
-                    <div id="file-info" class="d-none">
+                    <div id="file-info" class="hidden mt-4">
                         <p><strong>Selected File:</strong> <span id="file-name"></span></p>
                     </div>
-                    <div class="loader" id="loader"></div>
+                    <div class="loader hidden w-10 h-10 border-4 border-gray-200 border-t-accent rounded-full animate-spin mx-auto mt-5" id="loader"></div>
                     <div class="chuck-norris-loader" id="chuck-norris-loader">
                         <img src="/static/images/chuck_norris_loading.svg" alt="Chuck Norris AI loading">
                     </div>
@@ -339,35 +360,37 @@
             </div>
         </div>
 
-        <div class="split-view">
-            <div class="panel file-preview">
-                <div class="panel-header">
-                    <h3>Original File</h3>
+        <div class="flex-1 flex flex-col md:flex-row gap-4 min-h-0">
+            <div class="w-full md:w-1/2 bg-white rounded-xl shadow-sm p-4 overflow-auto border border-gray-200">
+                <div class="border-b pb-3 mb-4 flex justify-between items-center">
+                    <h3 class="text-xl font-semibold text-gray-700">Original File</h3>
                     <div id="original-file-tools"></div>
                 </div>
-                <div id="file-content">
-                    <p class="text-muted">File preview will appear here after uploading.</p>
+                <div id="file-content" class="overflow-auto">
+                    <p class="text-gray-500">File preview will appear here after uploading.</p>
                 </div>
             </div>
-            <div class="panel markdown-preview">
-                <div class="panel-header">
-                    <h3>Markdown Output</h3>
-                    <div id="markdown-tools">
-                        <div class="markdown-toggle">
-                            <div class="form-check form-switch me-2">
-                                <input class="form-check-input" type="checkbox" id="show-rendered" checked>
-                                <label class="form-check-label" for="show-rendered">
+            <div class="w-full md:w-1/2 bg-white rounded-xl shadow-sm p-4 overflow-auto border border-gray-200">
+                <div class="border-b pb-3 mb-4 flex justify-between items-center">
+                    <h3 class="text-xl font-semibold text-gray-700">Markdown Output</h3>
+                    <div id="markdown-tools" class="flex items-center">
+                        <div class="mr-2">
+                            <div class="flex items-center">
+                                <input class="mr-2 h-4 w-8 rounded-full bg-gray-200 cursor-pointer" 
+                                       type="checkbox" id="show-rendered" checked
+                                       role="switch">
+                                <label class="text-sm text-gray-600" for="show-rendered">
                                     Show rendered
                                 </label>
                             </div>
                         </div>
-                        <button id="copy-markdown" class="btn btn-sm btn-outline-secondary btn-tool">
-                            <i class="fas fa-copy"></i> Copy
+                        <button id="copy-markdown" class="ml-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 py-1 px-3 rounded-full flex items-center">
+                            <i class="fas fa-copy mr-1"></i> Copy
                         </button>
                     </div>
                 </div>
-                <div id="markdown-content">
-                    <p class="text-muted">Markdown output will appear here after uploading a file.</p>
+                <div id="markdown-content" class="markdown prose max-w-none">
+                    <p class="text-gray-500">Markdown output will appear here after uploading a file.</p>
                 </div>
             </div>
         </div>
@@ -403,12 +426,14 @@
         // Add event listener for Chuck Norris AI checkbox
         document.getElementById('use-chuck-norris-ai').addEventListener('change', function() {
             // If we're currently loading, switch loaders
-            if (loader.style.display === 'block' || chuckNorrisLoader.style.display === 'block') {
+            if (loader.classList.contains('block') || chuckNorrisLoader.style.display === 'block') {
                 if (this.checked) {
-                    loader.style.display = 'none';
+                    loader.classList.remove('block');
+                    loader.classList.add('hidden');
                     chuckNorrisLoader.style.display = 'block';
                 } else {
-                    loader.style.display = 'block';
+                    loader.classList.remove('hidden');
+                    loader.classList.add('block');
                     chuckNorrisLoader.style.display = 'none';
                 }
             }
@@ -421,7 +446,7 @@
                 markdownContent.innerHTML = marked.parse(rawMarkdown);
             } else {
                 // Show raw markdown
-                markdownContent.innerHTML = `<pre>${rawMarkdown}</pre>`;
+                markdownContent.innerHTML = `<pre class="whitespace-pre-wrap text-sm font-mono bg-gray-50 p-4 rounded">${rawMarkdown}</pre>`;
             }
         });
 
@@ -429,7 +454,7 @@
         copyMarkdownBtn.addEventListener('click', () => {
             navigator.clipboard.writeText(rawMarkdown).then(() => {
                 const originalText = copyMarkdownBtn.innerHTML;
-                copyMarkdownBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                copyMarkdownBtn.innerHTML = '<i class="fas fa-check mr-1"></i> Copied!';
                 setTimeout(() => {
                     copyMarkdownBtn.innerHTML = originalText;
                 }, 2000);
@@ -458,11 +483,13 @@
         });
 
         function highlight() {
-            dropArea.classList.add('highlight');
+            dropArea.classList.add('bg-gray-100');
+            dropArea.classList.add('border-primary');
         }
 
         function unhighlight() {
-            dropArea.classList.remove('highlight');
+            dropArea.classList.remove('bg-gray-100');
+            dropArea.classList.remove('border-primary');
         }
 
         // Handle dropped files
@@ -490,7 +517,7 @@
         function handleFiles(files) {
             const file = files[0]; // Only handle the first file
             fileName.textContent = file.name;
-            fileInfo.classList.remove('d-none');
+            fileInfo.classList.remove('hidden');
             
             // Add the Chuck Norris AI preference
             const useChuckNorrisAi = document.getElementById('use-chuck-norris-ai').checked;
@@ -499,12 +526,13 @@
             if (useChuckNorrisAi) {
                 chuckNorrisLoader.style.display = 'block';
             } else {
-                loader.style.display = 'block';
+                loader.classList.remove('hidden');
+                loader.classList.add('block');
             }
             
             // Clear previous content
-            fileContent.innerHTML = '<p>Processing file...</p>';
-            markdownContent.innerHTML = '<p>Converting to markdown...</p>';
+            fileContent.innerHTML = '<p class="text-gray-500">Processing file...</p>';
+            markdownContent.innerHTML = '<p class="text-gray-500">Converting to markdown...</p>';
             
             // Display file preview based on file type
             displayFilePreview(file);
@@ -532,7 +560,8 @@
             })
             .then(data => {
                 // Hide loaders
-                loader.style.display = 'none';
+                loader.classList.remove('block');
+                loader.classList.add('hidden');
                 chuckNorrisLoader.style.display = 'none';
                 
                 if (data.success) {
@@ -543,7 +572,7 @@
                     if (showRenderedToggle.checked) {
                         markdownContent.innerHTML = marked.parse(rawMarkdown);
                     } else {
-                        markdownContent.innerHTML = `<pre>${rawMarkdown}</pre>`;
+                        markdownContent.innerHTML = `<pre class="whitespace-pre-wrap text-sm font-mono bg-gray-50 p-4 rounded">${rawMarkdown}</pre>`;
                     }
                     
                     // For image files, update the src to the server path if needed
@@ -552,14 +581,15 @@
                     }
                 } else {
                     // Show error
-                    markdownContent.innerHTML = `<p class="text-danger">Error: ${data.error || 'Unknown error'}</p>`;
+                    markdownContent.innerHTML = `<p class="text-red-500">Error: ${data.error || 'Unknown error'}</p>`;
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                loader.style.display = 'none';
+                loader.classList.remove('block');
+                loader.classList.add('hidden');
                 chuckNorrisLoader.style.display = 'none';
-                markdownContent.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
+                markdownContent.innerHTML = `<p class="text-red-500">Error: ${error.message}</p>`;
             });
         }
 
@@ -629,36 +659,36 @@
         function displayFilePreview(file) {
             const fileType = file.type || getFileTypeFromName(file.name);
             let fileIcon = '';
-            let iconClass = '';
+            let bgColor = '';
             
             // Reset the original file tools
             document.getElementById('original-file-tools').innerHTML = '';
             
             // Determine file icon based on type
             if (fileType.includes('pdf')) {
-                fileIcon = '<i class="fas fa-file-pdf"></i>';
-                iconClass = 'pdf-icon';
+                fileIcon = '<i class="fas fa-file-pdf text-red-500"></i>';
+                bgColor = 'bg-red-50';
             } else if (fileType.includes('word') || file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
-                fileIcon = '<i class="fas fa-file-word"></i>';
-                iconClass = 'doc-icon';
+                fileIcon = '<i class="fas fa-file-word text-blue-500"></i>';
+                bgColor = 'bg-blue-50';
             } else if (fileType.includes('rtf') || file.name.endsWith('.rtf')) {
-                fileIcon = '<i class="fas fa-file-alt"></i>';
-                iconClass = 'doc-icon';
+                fileIcon = '<i class="fas fa-file-alt text-blue-400"></i>';
+                bgColor = 'bg-blue-50';
             } else if (fileType.includes('image')) {
-                fileIcon = '<i class="fas fa-file-image"></i>';
-                iconClass = 'img-icon';
+                fileIcon = '<i class="fas fa-file-image text-green-500"></i>';
+                bgColor = 'bg-green-50';
             } else {
-                fileIcon = '<i class="fas fa-file-alt"></i>';
-                iconClass = 'text-icon';
+                fileIcon = '<i class="fas fa-file-alt text-gray-500"></i>';
+                bgColor = 'bg-gray-50';
             }
             
             // Create file info card
             const fileInfoHTML = `
-                <div class="file-info-card">
-                    <div class="file-icon ${iconClass}">${fileIcon}</div>
-                    <h4>${file.name}</h4>
-                    <div class="file-type-badge">${fileType || 'Unknown'}</div>
-                    <p>Size: ${formatFileSize(file.size)}</p>
+                <div class="rounded-lg shadow-sm p-4 mb-4 text-center bg-white border border-gray-200">
+                    <div class="w-16 h-16 mx-auto mb-2 flex items-center justify-center text-3xl rounded-full ${bgColor}">${fileIcon}</div>
+                    <h4 class="text-lg font-semibold mb-1">${file.name}</h4>
+                    <span class="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 mb-2">${fileType || 'Unknown'}</span>
+                    <p class="text-sm text-gray-600">Size: ${formatFileSize(file.size)}</p>
                 </div>
             `;
             
@@ -669,8 +699,8 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const imgPreview = `
-                        <div class="file-content-preview">
-                            <img src="${e.target.result}" alt="${file.name}" class="img-fluid">
+                        <div class="mt-4">
+                            <img src="${e.target.result}" alt="${file.name}" class="max-w-full rounded-lg shadow-sm mx-auto">
                         </div>
                     `;
                     fileContent.innerHTML = fileInfoHTML + imgPreview;
@@ -682,8 +712,8 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const textPreview = `
-                        <div class="file-content-preview">
-                            <div class="text-preview">${e.target.result}</div>
+                        <div class="mt-4">
+                            <div class="bg-gray-50 font-mono text-sm p-4 rounded-lg border border-gray-200 overflow-auto h-80">${e.target.result}</div>
                         </div>
                     `;
                     fileContent.innerHTML = fileInfoHTML + textPreview;
@@ -698,29 +728,29 @@
                     
                     // Add zoom controls to the original file tools
                     document.getElementById('original-file-tools').innerHTML = `
-                        <button id="download-pdf" class="btn btn-sm btn-outline-secondary btn-tool">
-                            <i class="fas fa-download"></i> Download
+                        <button id="download-pdf" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 py-1 px-3 rounded-full flex items-center">
+                            <i class="fas fa-download mr-1"></i> Download
                         </button>
                     `;
                     
                     // Create PDF viewer container
                     contentPreviewHTML = `
-                        <div id="pdf-container" class="file-content-preview">
-                            <div class="pdf-controls">
-                                <button id="prev-page" class="btn btn-sm btn-primary">
-                                    <i class="fas fa-chevron-left"></i> Previous
+                        <div class="mt-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
+                            <div class="flex items-center justify-center space-x-2 py-3 px-4 bg-gray-50 border-b border-gray-200">
+                                <button id="prev-page" class="bg-primary text-white py-1 px-3 rounded-full text-sm flex items-center">
+                                    <i class="fas fa-chevron-left mr-1"></i> Previous
                                 </button>
-                                <span id="page-info" class="mx-3">Page: 1 / ?</span>
-                                <button id="next-page" class="btn btn-sm btn-primary">
-                                    Next <i class="fas fa-chevron-right"></i>
+                                <span id="page-info" class="mx-3 text-gray-700">Page: 1 / ?</span>
+                                <button id="next-page" class="bg-primary text-white py-1 px-3 rounded-full text-sm flex items-center">
+                                    Next <i class="fas fa-chevron-right ml-1"></i>
                                 </button>
-                                <div class="zoom-controls ms-3">
-                                    <button id="zoom-out" class="zoom-button"><i class="fas fa-search-minus"></i></button>
-                                    <span id="zoom-level">150%</span>
-                                    <button id="zoom-in" class="zoom-button"><i class="fas fa-search-plus"></i></button>
+                                <div class="ml-4 flex items-center">
+                                    <button id="zoom-out" class="text-gray-600 hover:text-gray-900"><i class="fas fa-search-minus"></i></button>
+                                    <span id="zoom-level" class="mx-2 text-sm">150%</span>
+                                    <button id="zoom-in" class="text-gray-600 hover:text-gray-900"><i class="fas fa-search-plus"></i></button>
                                 </div>
                             </div>
-                            <canvas id="pdf-viewer"></canvas>
+                            <canvas id="pdf-viewer" class="w-full border-gray-200"></canvas>
                         </div>
                     `;
                     
@@ -780,8 +810,8 @@
                     }).catch(error => {
                         console.error('Error loading PDF:', error);
                         fileContent.innerHTML = fileInfoHTML + `
-                            <div class="file-content-preview">
-                                <div class="alert alert-danger">
+                            <div class="mt-4">
+                                <div class="bg-red-50 text-red-600 p-4 rounded-lg">
                                     Error loading PDF preview: ${error.message}
                                 </div>
                             </div>
@@ -792,27 +822,29 @@
                 return;
             } else if (fileType.includes('word') || file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
                 contentPreviewHTML = `
-                    <div class="file-content-preview">
-                        <div class="docx-preview">
+                    <div class="mt-4">
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center text-gray-600">
                             <p>DOCX content preview not available in browser.</p>
-                            <p>Markdown conversion will be displayed on the right panel.</p>
+                            <p class="mt-2">Markdown conversion will be displayed on the right panel.</p>
                         </div>
                     </div>
                 `;
             } else if (fileType.includes('rtf') || file.name.endsWith('.rtf')) {
                 contentPreviewHTML = `
-                    <div class="file-content-preview">
-                        <div class="rtf-preview">
+                    <div class="mt-4">
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center text-gray-600">
                             <p>RTF content preview not available in browser.</p>
-                            <p>Markdown conversion will be displayed on the right panel.</p>
+                            <p class="mt-2">Markdown conversion will be displayed on the right panel.</p>
                         </div>
                     </div>
                 `;
             } else {
                 contentPreviewHTML = `
-                    <div class="file-content-preview">
-                        <p>No preview available for this file type.</p>
-                        <p>Markdown conversion will be displayed on the right panel.</p>
+                    <div class="mt-4">
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center text-gray-600">
+                            <p>No preview available for this file type.</p>
+                            <p class="mt-2">Markdown conversion will be displayed on the right panel.</p>
+                        </div>
                     </div>
                 `;
             }
