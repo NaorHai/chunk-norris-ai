@@ -12,6 +12,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <!-- Marked.js for markdown rendering -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- D3.js for graph visualization -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- ForceGraph for advanced network visualization -->
+    <script src="https://unpkg.com/force-graph"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -408,6 +412,124 @@
             z-index: 999;
             display: none;
         }
+        
+        /* Memory Graph styles */
+        #memory-graph-container {
+            width: 100%;
+            height: 600px;
+            background-color: #1a1a2e;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .memory-graph-panel {
+            flex: 1;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 0.5rem;
+            background-color: #f8f9fa;
+            overflow: hidden;
+            display: none; /* Hidden by default */
+        }
+        
+        .graph-node {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .graph-node:hover {
+            stroke: #fff;
+            stroke-width: 2px;
+        }
+        
+        .graph-link {
+            stroke-opacity: 0.6;
+            transition: all 0.2s ease;
+        }
+        
+        .graph-link:hover {
+            stroke-opacity: 1;
+            stroke-width: 2px;
+        }
+        
+        .node-label {
+            font-size: 12px;
+            pointer-events: none;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        
+        .graph-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .graph-control-btn {
+            background-color: rgba(255,255,255,0.15);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .graph-control-btn:hover {
+            background-color: rgba(255,255,255,0.25);
+        }
+        
+        .node-info-panel {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 100;
+        }
+        
+        .node-info-panel.visible {
+            transform: translateY(0);
+        }
+        
+        /* Graph Legend */
+        .graph-legend {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0,0,0,0.7);
+            border-radius: 4px;
+            padding: 10px;
+            color: white;
+            font-size: 12px;
+            z-index: 100;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col font-sans">
@@ -480,6 +602,21 @@
                                     Activate ultimate power mode for even more accurate document transformations.
                                 </p>
                             </div>
+                            
+                            <!-- Memory Graph Toggle (Added here) -->
+                            <div class="mb-4 border-t border-gray-200 pt-4 mt-6">
+                                <h4 class="font-medium text-gray-700 mb-3">Additional Features:</h4>
+                                <div class="flex items-center space-x-2">
+                                    <input type="checkbox" id="memory-graph-toggle" class="w-5 h-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500">
+                                    <label for="memory-graph-toggle" class="text-gray-700 font-medium">
+                                        Generate Memory Graph
+                                        <span class="inline-flex ml-2 bg-primary-500 text-white rounded-full px-2 text-xs font-bold">NEW</span>
+                                    </label>
+                                </div>
+                                <p class="text-sm text-gray-500 mt-1 ml-7 align-left">
+                                    Create an interactive visualization of the document's structure and relationships. Explore connections between concepts, sections, and entities.
+                                </p>
+                            </div>
                         </div>
                     </form>
                     <div id="file-info" class="hidden mt-6">
@@ -503,7 +640,7 @@
                     <p class="text-gray-500 text-center py-10">File preview will appear here after uploading.</p>
                 </div>
             </div>
-            <div class="w-full md:w-1/2 bg-white rounded-xl shadow-card p-5 overflow-auto border border-gray-100">
+            <div id="markdown-output-container" class="w-full md:w-1/2 bg-white rounded-xl shadow-card p-5 overflow-auto border border-gray-100">
                 <div class="border-b border-gray-100 pb-3 mb-5 flex justify-between items-center">
                     <h3 class="text-xl font-semibold text-gray-800">Markdown Output</h3>
                     <div id="markdown-tools" class="flex items-center">
@@ -526,13 +663,43 @@
                                 </label>
                             </div>
                         </div>
-                        <button id="copy-markdown" class="ml-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 px-4 rounded-full flex items-center transition-colors">
-                            <i class="fas fa-copy mr-1.5"></i> Copy
+                        <button id="copy-markdown" class="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors" title="Copy to Clipboard">
+                            <i class="fas fa-copy mr-1"></i> Copy
                         </button>
                     </div>
                 </div>
                 <div id="markdown-content" class="markdown prose prose-primary max-w-none">
                     <p class="text-gray-500 text-center py-10">Markdown output will appear here after uploading a file.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Memory Graph Panel (initially hidden) -->
+        <div id="memory-graph-panel" class="mt-6 bg-white rounded-xl shadow-card p-5 overflow-hidden border border-gray-100 hidden">
+            <div class="border-b border-gray-100 pb-3 mb-5 flex justify-between items-center">
+                <h3 class="text-xl font-semibold text-gray-800">Memory Graph</h3>
+                <div class="flex items-center">
+                    <button id="zoom-in" class="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors mr-2" title="Zoom In">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
+                    <button id="zoom-out" class="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors mr-2" title="Zoom Out">
+                        <i class="fas fa-search-minus"></i>
+                    </button>
+                    <button id="center-graph" class="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors" title="Center Graph">
+                        <i class="fas fa-compress-arrows-alt"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="memory-graph-container" class="h-[600px] bg-[#1a1a2e] rounded-lg relative">
+                <div class="flex flex-col justify-center items-center h-full">
+                    <div class="w-16 h-16 bg-primary-700 rounded-full flex items-center justify-center mb-4">
+                        <i class="fas fa-project-diagram text-white text-2xl"></i>
+                    </div>
+                    <p class="text-white text-lg font-medium mb-2">Memory Graph Visualization</p>
+                    <p class="text-gray-400 text-center max-w-md px-4">
+                        Process a document and enable the Memory Graph feature to visualize document structure,
+                        connections between concepts, and the overall flow of information.
+                    </p>
                 </div>
             </div>
         </div>
@@ -728,12 +895,28 @@
                 useChuckNorrisAi = true;
             }
             
+            // Get memory graph toggle state
+            const memoryGraphToggle = document.getElementById('memory-graph-toggle');
+            const generateMemoryGraph = memoryGraphToggle && memoryGraphToggle.checked;
+            
+            // After file upload starts, disable the memory graph toggle
+            if (memoryGraphToggle) {
+                memoryGraphToggle.disabled = true;
+                // Add a visual cue that it's disabled
+                const memoryGraphLabel = document.querySelector('label[for="memory-graph-toggle"]');
+                if (memoryGraphLabel) {
+                    memoryGraphLabel.classList.add('opacity-60');
+                }
+            }
+            
             console.log('Use AI refinement:', useAiRefinement);
             console.log('Use Chuck Norris AI:', useChuckNorrisAi);
+            console.log('Generate memory graph:', generateMemoryGraph);
             
             // Add parameters to the form data
             formData.append('use_ai_refinement', useAiRefinement);
             formData.append('use_chuck_norris_ai', useChuckNorrisAi);
+            formData.append('generate_memory_graph', generateMemoryGraph);
             
             fetch('/upload', {
                 method: 'POST',
@@ -755,11 +938,29 @@
                     // Store the raw markdown
                     rawMarkdown = data.markdown;
                     
-                    // Display rendered or raw markdown based on toggle
-                    if (showRenderedToggle.checked) {
-                        markdownContent.innerHTML = marked.parse(rawMarkdown);
-                    } else {
-                        markdownContent.innerHTML = `<pre class="whitespace-pre-wrap text-sm font-mono bg-gray-50 p-4 rounded border border-gray-200">${rawMarkdown}</pre>`;
+                    // Use the displayMarkdown function instead of direct DOM manipulation
+                    displayMarkdown(data.markdown);
+                    
+                    // Handle memory graph if enabled and data is present
+                    if (generateMemoryGraph) {
+                        // Show memory graph panel
+                        const memoryGraphPanel = document.getElementById('memory-graph-panel');
+                        
+                        // Only show panel and render graph if we have memory graph data
+                        if (data.memory_graph && data.memory_graph.nodes && data.memory_graph.nodes.length > 0) {
+                            memoryGraphPanel.classList.remove('hidden');
+                            
+                            // Process the memory graph data
+                            const graphData = processGraphData(data.memory_graph);
+                            
+                            // Render the memory graph
+                            renderMemoryGraph(graphData);
+                            
+                            // Scroll to the memory graph after a short delay
+                            setTimeout(() => {
+                                memoryGraphPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }, 500);
+                        }
                     }
                     
                     // For image files, update the src to the server path if needed
@@ -1237,6 +1438,362 @@
                     confirmButtonColor: '#0077ff'
                 });
             });
+        }
+
+        // Function to generate and visualize the memory graph
+        function generateMemoryGraph(markdownContent) {
+            // Show a better loading state with animation and clear message
+            document.getElementById('memory-graph-container').innerHTML = `
+                <div class="flex flex-col justify-center items-center h-full">
+                    <div class="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p class="text-white text-lg font-medium mb-2">Analyzing Document Structure</p>
+                    <p class="text-gray-400 text-center max-w-md px-4">Creating an interactive visualization of the document's structure and relationships...</p>
+                </div>
+            `;
+            
+            // Call the backend API to generate the memory graph
+            fetch('/generate_memory_graph', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    markdown: markdownContent
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server responded with status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success && data.memory_graph && 
+                    data.memory_graph.nodes && data.memory_graph.nodes.length > 0) {
+                    // Clear the container
+                    document.getElementById('memory-graph-container').innerHTML = '';
+                    
+                    // Process the memory graph data
+                    const graphData = processGraphData(data.memory_graph);
+                    
+                    // Render the memory graph
+                    renderMemoryGraph(graphData);
+                } else {
+                    // Show a more informative message when no meaningful graph could be generated
+                    document.getElementById('memory-graph-container').innerHTML = `
+                        <div class="flex flex-col justify-center items-center h-full">
+                            <div class="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mb-4">
+                                <i class="fas fa-info-circle text-white text-2xl"></i>
+                            </div>
+                            <p class="text-white text-lg font-medium mb-2">No Graph Structure Detected</p>
+                            <p class="text-gray-400 text-center max-w-md px-4">
+                                The document doesn't contain enough structured relationships to generate a meaningful graph.
+                                Try a document with more sections and logical connections.
+                            </p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error generating memory graph:', error);
+                // Show a user-friendly error with retry option
+                document.getElementById('memory-graph-container').innerHTML = `
+                    <div class="flex flex-col justify-center items-center h-full">
+                        <div class="w-16 h-16 bg-red-800 rounded-full flex items-center justify-center mb-4">
+                            <i class="fas fa-exclamation-triangle text-white text-2xl"></i>
+                        </div>
+                        <p class="text-white text-lg font-medium mb-2">Error Generating Memory Graph</p>
+                        <p class="text-gray-400 text-center max-w-md px-4 mb-4">
+                            We encountered a problem while analyzing the document structure. 
+                            The server might be busy or the document is too complex.
+                        </p>
+                        <button id="retry-graph" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md">
+                            <i class="fas fa-redo mr-2"></i> Try Again
+                        </button>
+                    </div>
+                `;
+                
+                // Add event listener to the retry button
+                document.getElementById('retry-graph')?.addEventListener('click', () => {
+                    generateMemoryGraph(markdownContent);
+                });
+            });
+        }
+
+        // Process the graph data to enhance visualization
+        function processGraphData(memoryGraph) {
+            const nodeTypes = {
+                'Section': '#4285F4',
+                'Concept': '#EA4335',
+                'Entity': '#FBBC05',
+                'Process': '#34A853'
+            };
+            
+            // Enhance nodes with visual properties
+            const nodes = memoryGraph.nodes.map(node => {
+                return {
+                    ...node,
+                    color: nodeTypes[node.type] || '#9C27B0', // Default purple for unknown types
+                    size: node.type === 'Section' ? 20 : 15,
+                    // Use title as label and add tooltip
+                    label: node.title,
+                    tooltip: node.summary,
+                    // Store connections for display in info panel
+                    connections: []
+                };
+            });
+            
+            // Process edges and add connection info to nodes
+            const edges = memoryGraph.edges.map(edge => {
+                // Find source and target nodes
+                const source = nodes.find(node => node.id === edge.source);
+                const target = nodes.find(node => node.id === edge.target);
+                
+                // Add connection info to nodes
+                if (source && target) {
+                    source.connections.push({
+                        node: target,
+                        relation: edge.relation,
+                        direction: 'outgoing'
+                    });
+                    
+                    target.connections.push({
+                        node: source,
+                        relation: edge.relation,
+                        direction: 'incoming'
+                    });
+                }
+                
+                return {
+                    ...edge,
+                    // Set edge colors based on relation type
+                    color: getEdgeColor(edge.relation)
+                };
+            });
+            
+            return { nodes, links: edges };
+        }
+
+        // Get edge color based on relation type
+        function getEdgeColor(relation) {
+            const relationColors = {
+                'uses': '#1E88E5',
+                'depends_on': '#D81B60',
+                'is_part_of': '#8E24AA',
+                'contains': '#43A047',
+                'references': '#F57C00'
+            };
+            
+            // Determine the color based on relation
+            let color = '#757575'; // Default gray
+            
+            Object.entries(relationColors).forEach(([key, value]) => {
+                if (relation.includes(key) || relation.replace(/_/g, ' ').includes(key.replace(/_/g, ' '))) {
+                    color = value;
+                }
+            });
+            
+            return color;
+        }
+
+        // Render the memory graph using Force Graph
+        function renderMemoryGraph(graphData) {
+            const graphContainer = document.getElementById('memory-graph-container');
+            const nodeInfoPanel = document.getElementById('node-info-panel');
+            const nodeInfoTitle = document.getElementById('node-info-title');
+            const nodeInfoType = document.getElementById('node-info-type');
+            const nodeInfoSummary = document.getElementById('node-info-summary');
+            const nodeConnectionsList = document.getElementById('node-connections-list');
+            
+            // Initialize the graph
+            let graphInstance = ForceGraph()
+                .graphData(graphData)
+                .backgroundColor('#1a1a2e')
+                .nodeId('id')
+                .nodeLabel('label')
+                .nodeColor('color')
+                .nodeVal('size')
+                // Adjust spacing between nodes using more moderate values
+                .d3AlphaDecay(0.02) // Slightly faster simulation settling
+                .d3VelocityDecay(0.2) // Better stabilization
+                // Use moderate link distance and charge values that don't harm the view
+                .d3Force('link', d3.forceLink().distance(80).strength(0.4))
+                // Reduce repulsive force for a more compact view
+                .d3Force('charge', d3.forceManyBody().strength(-150))
+                // Add a center force to keep the graph centered
+                .d3Force('center', d3.forceCenter())
+                .linkSource('source')
+                .linkTarget('target')
+                .linkColor('color')
+                .linkDirectionalArrowLength(6)
+                .linkDirectionalArrowRelPos(1)
+                .linkDirectionalParticles(2)
+                .linkDirectionalParticleWidth(2)
+                .linkWidth(1.5)
+                .nodeCanvasObject((node, ctx, globalScale) => {
+                    // Node circle
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, node.size, 0, 2 * Math.PI);
+                    ctx.fillStyle = node.color;
+                    ctx.fill();
+                    
+                    // Node border
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                    
+                    // Node label if zoomed in
+                    if (globalScale > 0.8) {
+                        const fontSize = 12 / globalScale;
+                        ctx.font = `${fontSize}px Arial`;
+                        ctx.fillStyle = 'white';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(node.label, node.x, node.y + node.size + fontSize);
+                    }
+                })
+                .onNodeClick(node => {
+                    // Show node info panel
+                    nodeInfoTitle.textContent = node.title;
+                    nodeInfoType.textContent = node.type;
+                    nodeInfoSummary.textContent = node.summary;
+                    
+                    // Clear connections list
+                    nodeConnectionsList.innerHTML = '';
+                    
+                    // Add connections
+                    if (node.connections && node.connections.length > 0) {
+                        node.connections.forEach(conn => {
+                            const li = document.createElement('li');
+                            li.className = 'mb-1';
+                            
+                            const direction = conn.direction === 'outgoing' 
+                                ? `<span class="text-blue-300">${node.title}</span> → <span class="text-yellow-300">${conn.node.title}</span>` 
+                                : `<span class="text-yellow-300">${conn.node.title}</span> → <span class="text-blue-300">${node.title}</span>`;
+                            
+                            li.innerHTML = `${direction} <span class="text-gray-400">(${conn.relation})</span>`;
+                            nodeConnectionsList.appendChild(li);
+                        });
+                    } else {
+                        const li = document.createElement('li');
+                        li.textContent = 'No connections';
+                        nodeConnectionsList.appendChild(li);
+                    }
+                    
+                    // Show the panel
+                    nodeInfoPanel.classList.add('visible');
+                    
+                    // Highlight node and its connections
+                    graphInstance
+                        .nodeColor(n => n === node ? '#ffffff' : n.color)
+                        .linkWidth(link => link.source === node.id || link.target === node.id ? 3 : 1.5)
+                        .linkDirectionalParticles(link => link.source === node.id || link.target === node.id ? 5 : 0);
+                    
+                    // Center on node with animation
+                    graphInstance.centerAt(node.x, node.y, 1000);
+                    graphInstance.zoom(1.5, 1000);
+                })
+                .onBackgroundClick(() => {
+                    // Hide node info panel
+                    nodeInfoPanel.classList.remove('visible');
+                    
+                    // Reset node and link styles
+                    graphInstance
+                        .nodeColor('color')
+                        .linkWidth(1.5)
+                        .linkDirectionalParticles(2);
+                });
+            
+            // Add the graph to the container
+            graphInstance(graphContainer);
+            
+            // Add event listeners for controls
+            document.getElementById('zoom-in').addEventListener('click', () => {
+                graphInstance.zoom(graphInstance.zoom() * 1.2, 800);
+            });
+            
+            document.getElementById('zoom-out').addEventListener('click', () => {
+                graphInstance.zoom(graphInstance.zoom() / 1.2, 800);
+            });
+            
+            document.getElementById('center-graph').addEventListener('click', () => {
+                graphInstance.zoomToFit(400, 40);
+            });
+            
+            // Initial zoom to fit
+            setTimeout(() => {
+                graphInstance.zoomToFit(400, 40);
+            }, 500);
+            
+            // Store the graph instance globally
+            window.currentGraphInstance = graphInstance;
+        }
+
+        // Add memory graph functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const memoryGraphToggle = document.getElementById('memory-graph-toggle');
+            const memoryGraphPanel = document.getElementById('memory-graph-panel');
+            
+            // Initially hide the memory graph panel completely - not just with CSS
+            if (memoryGraphPanel) {
+                memoryGraphPanel.classList.add('hidden');
+            }
+            
+            // Memory graph toggle handler - just update the UI, don't generate graph here
+            memoryGraphToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    // Show info message about what will happen on file upload
+                    document.getElementById('memory-graph-container').innerHTML = `
+                        <div class="flex flex-col justify-center items-center h-full">
+                            <div class="w-16 h-16 bg-primary-700 rounded-full flex items-center justify-center mb-4">
+                                <i class="fas fa-check-circle text-white text-2xl"></i>
+                            </div>
+                            <p class="text-white text-lg font-medium mb-2">Memory Graph Enabled</p>
+                            <p class="text-gray-400 text-center max-w-md px-4">
+                                A memory graph will be generated when you upload a document. The graph will show 
+                                relationships between concepts, sections, and entities in your document.
+                            </p>
+                        </div>
+                    `;
+                } else {
+                    // Hide the memory graph panel
+                    memoryGraphPanel.classList.add('hidden');
+                }
+            });
+            
+            // Remove the markdownUpdated event listener for memory graph generation
+            // We'll only generate the graph from backend data now
+        });
+
+        // Update the displayMarkdown function to dispatch an event when markdown is updated
+        function displayMarkdown(markdown) {
+            // Store the raw markdown globally
+            rawMarkdown = markdown;
+            
+            const markdownDisplay = document.getElementById('markdown-content');
+            const showRenderedToggle = document.getElementById('show-rendered');
+            
+            // Display rendered or raw markdown based on toggle
+            if (showRenderedToggle && showRenderedToggle.checked) {
+                markdownDisplay.innerHTML = marked.parse(markdown);
+                
+                // Enable syntax highlighting
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightBlock(block);
+                });
+            } else {
+                markdownDisplay.innerHTML = `<pre class="whitespace-pre-wrap text-sm font-mono bg-gray-50 p-4 rounded">${markdown}</pre>`;
+            }
+            
+            // Check if the memory graph toggle is checked
+            const memoryGraphToggle = document.getElementById('memory-graph-toggle');
+            
+            // Dispatch a custom event that the markdown has been updated
+            window.dispatchEvent(new CustomEvent('markdownUpdated', { 
+                detail: { markdown: markdown }
+            }));
+            
+            // Do NOT auto-generate memory graph here anymore - we'll only get it from the backend
         }
     </script>
     

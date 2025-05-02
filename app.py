@@ -7,6 +7,7 @@ from flask_cors import CORS
 
 # Import our new modular services
 from services.factory import DocumentProcessorFactory
+from services.ai import MemoryGraphProcessor
 
 app = Flask(__name__, static_url_path='/static', static_folder='static')
 CORS(app)  # Enable CORS for all routes
@@ -49,8 +50,12 @@ def upload_file():
     # Get Chuck Norris AI preference (default to False if not specified)
     use_chuck_norris_ai = request.form.get('use_chuck_norris_ai', 'false').lower() == 'true'
     
+    # Get memory graph generation preference (default to False if not specified)
+    generate_memory_graph = request.form.get('generate_memory_graph', 'false').lower() == 'true'
+    
     print(f"use_ai_refinement: {use_ai_refinement}")
     print(f"use_chuck_norris_ai: {use_chuck_norris_ai}")
+    print(f"generate_memory_graph: {generate_memory_graph}")
     print("=== END REQUEST DATA ===\n")
     
     if file:
@@ -83,6 +88,7 @@ def upload_file():
             
             # Use our factory to get the appropriate processor
             factory = DocumentProcessorFactory()
+            memory_graph = None
             
             # Special handling for Chuck Norris AI mode
             if use_chuck_norris_ai:
@@ -99,6 +105,17 @@ def upload_file():
                     markdown_content = result
                     html_preview = None
                 
+                # Generate memory graph if requested
+                if generate_memory_graph:
+                    try:
+                        # Initialize memory graph processor
+                        memory_graph_processor = MemoryGraphProcessor()
+                        memory_graph = memory_graph_processor.generate_memory_graph(markdown_content)
+                    except Exception as e:
+                        print(f"Error generating memory graph: {str(e)}")
+                        # Set memory_graph to None if there's an error
+                        memory_graph = None
+                
                 # For Chuck Norris AI files, return appropriate response
                 return jsonify({
                     'success': True,
@@ -107,7 +124,8 @@ def upload_file():
                     'html_preview': html_preview,
                     'used_ai_refinement': use_ai_refinement,
                     'used_chuck_norris_ai': use_chuck_norris_ai,
-                    'is_rtf': is_rtf
+                    'is_rtf': is_rtf,
+                    'memory_graph': memory_graph
                 })
             
             # Standard processing flow for non-Chuck Norris AI mode
@@ -123,6 +141,17 @@ def upload_file():
                 markdown_content = result
                 html_preview = None
             
+            # Generate memory graph if requested
+            if generate_memory_graph:
+                try:
+                    # Initialize memory graph processor
+                    memory_graph_processor = MemoryGraphProcessor()
+                    memory_graph = memory_graph_processor.generate_memory_graph(markdown_content)
+                except Exception as e:
+                    print(f"Error generating memory graph: {str(e)}")
+                    # Set memory_graph to None if there's an error
+                    memory_graph = None
+            
             # For images, update the markdown content to point to the correct URL
             if is_image:
                 # Keep the image file for display
@@ -133,7 +162,8 @@ def upload_file():
                     'imagePath': f"/uploads/images/{unique_filename}",
                     'used_ai_refinement': use_ai_refinement,
                     'used_chuck_norris_ai': use_chuck_norris_ai,
-                    'is_rtf': False
+                    'is_rtf': False,
+                    'memory_graph': memory_graph
                 })
             else:
                 # For non-images that aren't RTF with html_preview, clean up after conversion
@@ -147,7 +177,8 @@ def upload_file():
                     'html_preview': html_preview,
                     'used_ai_refinement': use_ai_refinement,
                     'used_chuck_norris_ai': use_chuck_norris_ai,
-                    'is_rtf': is_rtf
+                    'is_rtf': is_rtf,
+                    'memory_graph': memory_graph
                 })
         except Exception as e:
             print(f"Error processing file: {str(e)}")
@@ -158,6 +189,34 @@ def upload_file():
                 os.remove(filepath)
             return jsonify({'error': str(e)}), 500
 
+@app.route('/generate_memory_graph', methods=['POST'])
+def generate_memory_graph():
+    """
+    Generate a memory graph from markdown content
+    """
+    try:
+        data = request.get_json()
+        if not data or 'markdown' not in data:
+            return jsonify({'error': 'No markdown content provided'}), 400
+        
+        markdown_content = data['markdown']
+        
+        # Initialize the memory graph processor
+        memory_graph_processor = MemoryGraphProcessor()
+        
+        # Generate the memory graph
+        memory_graph = memory_graph_processor.generate_memory_graph(markdown_content)
+        
+        return jsonify({
+            'success': True,
+            'memory_graph': memory_graph
+        })
+    except Exception as e:
+        print(f"Error generating memory graph: {str(e)}")
+        import traceback
+        print(f"Exception traceback: {traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
-    # Use 0.0.0.0 to allow external access and port 8081 to avoid conflicts
-    app.run(debug=True, host='0.0.0.0', port=8081) 
+    # Use 0.0.0.0 to allow external access and port 8080 to avoid conflicts
+    app.run(debug=True, host='0.0.0.0', port=8080) 
