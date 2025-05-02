@@ -504,20 +504,48 @@ def process_image_with_gpt4o(image_path):
     
     print("Using Chuck Norris AI for image processing, bypassing OCR...")
     
+    # Load system and user prompts from mustache template file
+    system_prompt = ""
+    user_prompt = ""
+    
+    try:
+        with open('prompts/gpt4o_flow_chart_prompt.mustache', 'r') as template_file:
+            template_content = template_file.read()
+            
+            # Extract system prompt (between first {{! System prompt... }} and {{! User prompt... }})
+            system_start = template_content.find("{{! System prompt")
+            user_start = template_content.find("{{! User prompt")
+            
+            if system_start != -1 and user_start != -1:
+                # Extract system prompt (skip the comment line)
+                system_prompt_with_comment = template_content[system_start:user_start].strip()
+                system_prompt_lines = system_prompt_with_comment.split('\n')
+                system_prompt = '\n'.join(system_prompt_lines[1:]).strip()
+                
+                # Extract user prompt (skip the comment line)
+                user_prompt_with_comment = template_content[user_start:].strip()
+                user_prompt_lines = user_prompt_with_comment.split('\n')
+                user_prompt = '\n'.join(user_prompt_lines[1:]).strip()
+    except Exception as e:
+        print(f"Error loading prompt template: {str(e)}, using fallback prompts")
+        # Fallback to hardcoded prompts
+        system_prompt = "You are an expert at analyzing document layouts, detecting reading order, and converting document content to well-structured markdown. When presented with an image of a document or text, analyze the layout carefully before responding.\n\nIMPORTANT: Your response MUST be valid markdown format. This includes:\n- Using proper heading levels with # syntax\n- Correctly formatted lists (ordered and unordered)\n- Proper table syntax with | and --- separators\n- Correct code blocks with ``` delimiters\n- Proper link and image syntax\n- No HTML tags unless absolutely necessary\n- For any icons, symbols, or special characters that cannot be represented in plain text, describe them within square brackets, e.g., [checkmark icon], [arrow pointing right], [company logo]"
+        user_prompt = "This is an image of a document or text. Please analyze the layout first, detecting whether it has columns, tables, sections, flow charts, or other complex layouts. Then, extract all content and convert it to clean, well-structured markdown. Follow these steps:\n\n1. Analyze the layout (columns, reading order, tables, flow charts, etc.)\n2. Extract the full text content\n3. Convert to properly structured markdown with appropriate headings, lists, tables, etc.\n4. Return ONLY the valid markdown output without additional explanations\n5. Ensure all markdown syntax is correct and properly formatted\n6. For any icons, symbols, or special characters that cannot be represented in plain text, describe them within square brackets (e.g., [checkmark icon], [arrow pointing right], etc.)\n\nIMPORTANT - FOR FLOW CHARTS AND DIAGRAMS:\n- If the image contains a flow chart or diagram, represent its structure in markdown\n- For each vertex/node in the diagram, provide a concise one-sentence description\n- For each relationship (edge/arc) between vertices, explicitly list as 'Vertex A → Vertex B' (showing direction with an arrow)\n- Indicate whether relationships are one-directional (→) or bi-directional (↔) between nodes\n- List all vertex-to-vertex relationships to completely map the structure\n- Include a clear section titled '## Graph Structure' that enumerates all relationships\n- After listing all relationships, include a single sentence summarizing the overall flow or purpose\n- Do not just extract the text without capturing the structural relationships and direction of flow"
+    
     # Create the payload with the image and prompt
     payload = {
         "model": "gpt-4o-mini",
         "messages": [
             {
                 "role": "system",
-                "content": "You are an expert at analyzing document layouts, detecting reading order, and converting document content to well-structured markdown. When presented with an image of a document or text, analyze the layout carefully before responding.\n\nIMPORTANT: Your response MUST be valid markdown format. This includes:\n- Using proper heading levels with # syntax\n- Correctly formatted lists (ordered and unordered)\n- Proper table syntax with | and --- separators\n- Correct code blocks with ``` delimiters\n- Proper link and image syntax\n- No HTML tags unless absolutely necessary\n- For any icons, symbols, or special characters that cannot be represented in plain text, describe them within square brackets, e.g., [checkmark icon], [arrow pointing right], [company logo]"
+                "content": system_prompt
             },
             {
                 "role": "user",
                 "content": [
                     {
                         "type": "text",
-                        "text": "This is an image of a document or text. Please analyze the layout first, detecting whether it has columns, tables, sections, flow charts, or other complex layouts. Then, extract all content and convert it to clean, well-structured markdown. Follow these steps:\n\n1. Analyze the layout (columns, reading order, tables, flow charts, etc.)\n2. Extract the full text content\n3. Convert to properly structured markdown with appropriate headings, lists, tables, etc.\n4. Return ONLY the valid markdown output without additional explanations\n5. Ensure all markdown syntax is correct and properly formatted\n6. For any icons, symbols, or special characters that cannot be represented in plain text, describe them within square brackets (e.g., [checkmark icon], [arrow pointing right], etc.)\n\nIMPORTANT - FOR FLOW CHARTS AND DIAGRAMS:\n- If the image contains a flow chart or diagram, represent its structure in markdown\n- Show the steps in a structured way (e.g., using ordered lists or bullet points to represent the flow)\n- For each step or element in the diagram, provide a concise one-sentence description\n- Keep the flow and relationships between elements clear in your representation\n- Do not just extract the text without the structural relationships"
+                        "text": user_prompt
                     },
                     {
                         "type": "image_url",
