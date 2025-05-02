@@ -17,15 +17,62 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: "#0f1d2d",
-                        secondary: "#ff9900",
-                        accent: "#3498db",
-                    }
+                        primary: {
+                            50: "#e6f1ff",
+                            100: "#cce3ff",
+                            200: "#99c8ff",
+                            300: "#66adff",
+                            400: "#3392ff",
+                            500: "#0077ff",
+                            600: "#005fcc",
+                            700: "#004799",
+                            800: "#003066",
+                            900: "#001833",
+                            950: "#000c19"
+                        },
+                        secondary: {
+                            50: "#fff8e6",
+                            100: "#fff1cc",
+                            200: "#ffe499",
+                            300: "#ffd666",
+                            400: "#ffc933",
+                            500: "#ffbb00",
+                            600: "#cc9600",
+                            700: "#997000",
+                            800: "#664b00",
+                            900: "#332500",
+                            950: "#191300"
+                        },
+                        success: {
+                            50: "#eafaf2",
+                            100: "#d5f6e6",
+                            200: "#abeece",
+                            300: "#81e5b5",
+                            400: "#56dd9d",
+                            500: "#2bd484",
+                            600: "#22aa6a",
+                            700: "#1a7f4f",
+                            800: "#115535",
+                            900: "#092a1a",
+                            950: "#04150d"
+                        },
+                        dark: "#0a1626",
+                        light: "#f8fafc"
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        card: '0 4px 20px -2px rgba(0, 0, 0, 0.08)',
+                        'card-hover': '0 8px 30px -2px rgba(0, 0, 0, 0.12)',
+                    },
                 }
             }
         }
     </script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             height: 100vh;
@@ -301,58 +348,61 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col">
-    <header class="bg-primary text-white py-5 shadow-md">
-        <div class="container mx-auto px-4 flex items-center">
-            <img src="/static/images/logo.png" alt="Document Converter Logo" class="h-24 absolute left-0">
+<body class="bg-gray-50 min-h-screen flex flex-col font-sans">
+    <header class="bg-gradient-to-r from-primary-700 via-primary-800 to-dark text-white py-5 shadow-lg">
+        <div class="container mx-auto px-4 flex items-center relative">
+            <img src="/static/images/logo.png" alt="Document Converter Logo" class="h-24 absolute left-0 top-1/2 -translate-y-1/2">
             <div class="text-center w-full">
                 <h1 class="text-3xl font-bold mb-1">Document to Markdown Converter</h1>
-                <p class="text-gray-300">Upload a document (PDF, DOCX, RTF, images) and see the markdown conversion</p>
+                <p class="text-gray-100">Upload a document (PDF, DOCX, RTF, images) and see the markdown conversion</p>
             </div>
         </div>
     </header>
 
-    <div class="container mx-auto px-4 flex-1 flex flex-col py-6">
-        <div class="mb-6">
+    <div class="container mx-auto px-4 flex-1 flex flex-col py-8 max-w-6xl">
+        <div class="mb-8">
             <div class="w-full">
-                <div id="drop-area" class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-white transition-all hover:bg-gray-50">
+                <div id="drop-area" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center bg-white transition-all hover:bg-gray-50 hover:border-primary-400 shadow-card hover:shadow-card-hover">
                     <form id="upload-form" class="my-3">
-                        <p class="mb-3 text-gray-600">Drag & drop files here or click to select files</p>
+                        <p class="mb-4 text-gray-600">Drag & drop files here or click to select files</p>
                         <input type="file" id="file-input" accept=".pdf,.docx,.doc,.rtf,.png,.jpg,.jpeg,.txt" class="hidden">
-                        <button id="select-button" type="button" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-full shadow-sm transition-all">
+                        <button id="select-button" type="button" class="bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-8 rounded-full shadow-md transition-all transform hover:scale-105 hover:-translate-y-0.5 duration-300">
                             Select a File
                         </button>
                         
                         <!-- AI Refinement checkbox -->
-                        <div class="mt-6 mb-3">
+                        <div class="mt-8 mb-4">
                             <div class="flex items-center">
-                                <input class="w-4 h-4 text-accent focus:ring-accent rounded" type="checkbox" id="use-ai-refinement" checked>
-                                <label class="ml-2 text-gray-700" for="use-ai-refinement">
+                                <input class="w-5 h-5 text-primary-500 focus:ring-primary-400 rounded" type="checkbox" id="use-ai-refinement" checked>
+                                <label class="ml-2 text-gray-700 font-medium" for="use-ai-refinement">
                                     Use AI to improve markdown formatting and structure
                                 </label>
                             </div>
-                            <p class="text-xs text-gray-500 mt-1 ml-6">
+                            <p class="text-sm text-gray-500 mt-1 ml-7">
                                 This uses OpenAI's GPT-4o Mini to enhance the document structure and fix formatting issues.
                             </p>
                         </div>
                         
                         <!-- Chuck Norris AI checkbox -->
-                        <div class="mt-6 mb-3">
+                        <div class="mt-6 mb-4">
                             <div class="flex items-center">
-                                <input class="w-4 h-4 text-secondary focus:ring-secondary rounded" type="checkbox" id="use-chuck-norris-ai">
+                                <input class="w-5 h-5 text-secondary-500 focus:ring-secondary-400 rounded" type="checkbox" id="use-chuck-norris-ai">
                                 <label class="ml-2 text-gray-700" for="use-chuck-norris-ai">
-                                    <span class="font-bold">Chuck Norris AI 💪</span>
+                                    <span class="font-semibold flex items-center">
+                                        Chuck Norris AI
+                                        <span class="inline-flex ml-2 bg-secondary-500 text-white rounded-full h-6 w-6 items-center justify-center">💪</span>
+                                    </span>
                                 </label>
                             </div>
-                            <p class="text-xs text-gray-500 mt-1 ml-6">
+                            <p class="text-sm text-gray-500 mt-1 ml-7">
                                 Bypass OCR completely and let AI directly interpret the image content. For images with complex layouts or when OCR is struggling.
                             </p>
                         </div>
                     </form>
-                    <div id="file-info" class="hidden mt-4">
-                        <p><strong>Selected File:</strong> <span id="file-name"></span></p>
+                    <div id="file-info" class="hidden mt-6">
+                        <p class="bg-gray-50 inline-block px-4 py-2 rounded-lg"><strong>Selected File:</strong> <span id="file-name" class="font-medium"></span></p>
                     </div>
-                    <div class="loader hidden w-10 h-10 border-4 border-gray-200 border-t-accent rounded-full animate-spin mx-auto mt-5" id="loader"></div>
+                    <div class="loader hidden w-12 h-12 border-4 border-gray-200 border-t-primary-500 rounded-full animate-spin mx-auto mt-6" id="loader"></div>
                     <div class="chuck-norris-loader" id="chuck-norris-loader">
                         <img src="/static/images/chuck_norris_loading.svg" alt="Chuck Norris AI loading">
                     </div>
@@ -360,37 +410,46 @@
             </div>
         </div>
 
-        <div class="flex-1 flex flex-col md:flex-row gap-4 min-h-0">
-            <div class="w-full md:w-1/2 bg-white rounded-xl shadow-sm p-4 overflow-auto border border-gray-200">
-                <div class="border-b pb-3 mb-4 flex justify-between items-center">
-                    <h3 class="text-xl font-semibold text-gray-700">Original File</h3>
+        <div class="flex-1 flex flex-col md:flex-row gap-6 min-h-0">
+            <div class="w-full md:w-1/2 bg-white rounded-xl shadow-card p-5 overflow-auto border border-gray-100">
+                <div class="border-b border-gray-100 pb-3 mb-5 flex justify-between items-center">
+                    <h3 class="text-xl font-semibold text-gray-800">Original File</h3>
                     <div id="original-file-tools"></div>
                 </div>
                 <div id="file-content" class="overflow-auto">
-                    <p class="text-gray-500">File preview will appear here after uploading.</p>
+                    <p class="text-gray-500 text-center py-10">File preview will appear here after uploading.</p>
                 </div>
             </div>
-            <div class="w-full md:w-1/2 bg-white rounded-xl shadow-sm p-4 overflow-auto border border-gray-200">
-                <div class="border-b pb-3 mb-4 flex justify-between items-center">
-                    <h3 class="text-xl font-semibold text-gray-700">Markdown Output</h3>
+            <div class="w-full md:w-1/2 bg-white rounded-xl shadow-card p-5 overflow-auto border border-gray-100">
+                <div class="border-b border-gray-100 pb-3 mb-5 flex justify-between items-center">
+                    <h3 class="text-xl font-semibold text-gray-800">Markdown Output</h3>
                     <div id="markdown-tools" class="flex items-center">
-                        <div class="mr-2">
+                        <div class="mr-3">
                             <div class="flex items-center">
-                                <input class="mr-2 h-4 w-8 rounded-full bg-gray-200 cursor-pointer" 
-                                       type="checkbox" id="show-rendered" checked
-                                       role="switch">
-                                <label class="text-sm text-gray-600" for="show-rendered">
+                                <div class="relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        id="show-rendered" 
+                                        class="absolute w-6 h-6 transition-all duration-200 ease-in-out bg-white border-2 border-gray-200 rounded-full appearance-none cursor-pointer peer checked:right-0 right-6 checked:border-primary-500 z-10"
+                                        checked
+                                    />
+                                    <label 
+                                        for="show-rendered" 
+                                        class="block h-full bg-gray-200 peer-checked:bg-primary-100 rounded-full"
+                                    ></label>
+                                </div>
+                                <label class="ml-2 text-sm text-gray-600" for="show-rendered">
                                     Show rendered
                                 </label>
                             </div>
                         </div>
-                        <button id="copy-markdown" class="ml-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 py-1 px-3 rounded-full flex items-center">
-                            <i class="fas fa-copy mr-1"></i> Copy
+                        <button id="copy-markdown" class="ml-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 px-4 rounded-full flex items-center transition-colors">
+                            <i class="fas fa-copy mr-1.5"></i> Copy
                         </button>
                     </div>
                 </div>
-                <div id="markdown-content" class="markdown prose max-w-none">
-                    <p class="text-gray-500">Markdown output will appear here after uploading a file.</p>
+                <div id="markdown-content" class="markdown prose prose-primary max-w-none">
+                    <p class="text-gray-500 text-center py-10">Markdown output will appear here after uploading a file.</p>
                 </div>
             </div>
         </div>
@@ -483,13 +542,15 @@
         });
 
         function highlight() {
-            dropArea.classList.add('bg-gray-100');
-            dropArea.classList.add('border-primary');
+            dropArea.classList.add('bg-gray-50');
+            dropArea.classList.add('border-primary-500');
+            dropArea.classList.add('shadow-card-hover');
         }
 
         function unhighlight() {
-            dropArea.classList.remove('bg-gray-100');
-            dropArea.classList.remove('border-primary');
+            dropArea.classList.remove('bg-gray-50');
+            dropArea.classList.remove('border-primary-500');
+            dropArea.classList.remove('shadow-card-hover');
         }
 
         // Handle dropped files
@@ -572,7 +633,7 @@
                     if (showRenderedToggle.checked) {
                         markdownContent.innerHTML = marked.parse(rawMarkdown);
                     } else {
-                        markdownContent.innerHTML = `<pre class="whitespace-pre-wrap text-sm font-mono bg-gray-50 p-4 rounded">${rawMarkdown}</pre>`;
+                        markdownContent.innerHTML = `<pre class="whitespace-pre-wrap text-sm font-mono bg-gray-50 p-4 rounded border border-gray-200">${rawMarkdown}</pre>`;
                     }
                     
                     // For image files, update the src to the server path if needed
@@ -581,7 +642,12 @@
                     }
                 } else {
                     // Show error
-                    markdownContent.innerHTML = `<p class="text-red-500">Error: ${data.error || 'Unknown error'}</p>`;
+                    markdownContent.innerHTML = `
+                        <div class="bg-red-50 text-red-600 p-4 rounded-lg border border-red-100">
+                            <p class="flex items-center"><i class="fas fa-exclamation-circle mr-2"></i> Error</p>
+                            <p class="text-sm mt-2">${data.error || 'Unknown error'}</p>
+                        </div>
+                    `;
                 }
             })
             .catch(error => {
@@ -589,7 +655,12 @@
                 loader.classList.remove('block');
                 loader.classList.add('hidden');
                 chuckNorrisLoader.style.display = 'none';
-                markdownContent.innerHTML = `<p class="text-red-500">Error: ${error.message}</p>`;
+                markdownContent.innerHTML = `
+                    <div class="bg-red-50 text-red-600 p-4 rounded-lg border border-red-100">
+                        <p class="flex items-center"><i class="fas fa-exclamation-circle mr-2"></i> Error</p>
+                        <p class="text-sm mt-2">${error.message}</p>
+                    </div>
+                `;
             });
         }
 
@@ -660,34 +731,48 @@
             const fileType = file.type || getFileTypeFromName(file.name);
             let fileIcon = '';
             let bgColor = '';
+            let iconColor = '';
+            let borderColor = '';
             
             // Reset the original file tools
             document.getElementById('original-file-tools').innerHTML = '';
             
             // Determine file icon based on type
             if (fileType.includes('pdf')) {
-                fileIcon = '<i class="fas fa-file-pdf text-red-500"></i>';
+                fileIcon = '<i class="fas fa-file-pdf"></i>';
                 bgColor = 'bg-red-50';
+                iconColor = 'text-red-500';
+                borderColor = 'border-red-100';
             } else if (fileType.includes('word') || file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
-                fileIcon = '<i class="fas fa-file-word text-blue-500"></i>';
-                bgColor = 'bg-blue-50';
+                fileIcon = '<i class="fas fa-file-word"></i>';
+                bgColor = 'bg-primary-50';
+                iconColor = 'text-primary-500';
+                borderColor = 'border-primary-100';
             } else if (fileType.includes('rtf') || file.name.endsWith('.rtf')) {
-                fileIcon = '<i class="fas fa-file-alt text-blue-400"></i>';
-                bgColor = 'bg-blue-50';
+                fileIcon = '<i class="fas fa-file-alt"></i>';
+                bgColor = 'bg-primary-50';
+                iconColor = 'text-primary-400';
+                borderColor = 'border-primary-100';
             } else if (fileType.includes('image')) {
-                fileIcon = '<i class="fas fa-file-image text-green-500"></i>';
-                bgColor = 'bg-green-50';
+                fileIcon = '<i class="fas fa-file-image"></i>';
+                bgColor = 'bg-success-50';
+                iconColor = 'text-success-500';
+                borderColor = 'border-success-100';
             } else {
-                fileIcon = '<i class="fas fa-file-alt text-gray-500"></i>';
+                fileIcon = '<i class="fas fa-file-alt"></i>';
                 bgColor = 'bg-gray-50';
+                iconColor = 'text-gray-500';
+                borderColor = 'border-gray-100';
             }
             
             // Create file info card
             const fileInfoHTML = `
-                <div class="rounded-lg shadow-sm p-4 mb-4 text-center bg-white border border-gray-200">
-                    <div class="w-16 h-16 mx-auto mb-2 flex items-center justify-center text-3xl rounded-full ${bgColor}">${fileIcon}</div>
+                <div class="rounded-lg shadow-card p-5 mb-5 text-center bg-white border ${borderColor}">
+                    <div class="w-20 h-20 mx-auto mb-3 flex items-center justify-center text-3xl rounded-full ${bgColor}">
+                        <span class="${iconColor}">${fileIcon}</span>
+                    </div>
                     <h4 class="text-lg font-semibold mb-1">${file.name}</h4>
-                    <span class="inline-block px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 mb-2">${fileType || 'Unknown'}</span>
+                    <span class="inline-block px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-700 mb-2">${fileType || 'Unknown'}</span>
                     <p class="text-sm text-gray-600">Size: ${formatFileSize(file.size)}</p>
                 </div>
             `;
@@ -728,29 +813,29 @@
                     
                     // Add zoom controls to the original file tools
                     document.getElementById('original-file-tools').innerHTML = `
-                        <button id="download-pdf" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 py-1 px-3 rounded-full flex items-center">
-                            <i class="fas fa-download mr-1"></i> Download
+                        <button id="download-pdf" class="text-sm bg-primary-50 hover:bg-primary-100 text-primary-700 py-1.5 px-4 rounded-full flex items-center transition-colors">
+                            <i class="fas fa-download mr-1.5"></i> Download
                         </button>
                     `;
                     
                     // Create PDF viewer container
                     contentPreviewHTML = `
-                        <div class="mt-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
-                            <div class="flex items-center justify-center space-x-2 py-3 px-4 bg-gray-50 border-b border-gray-200">
-                                <button id="prev-page" class="bg-primary text-white py-1 px-3 rounded-full text-sm flex items-center">
-                                    <i class="fas fa-chevron-left mr-1"></i> Previous
+                        <div class="mt-4 bg-white rounded-lg border border-gray-100 overflow-hidden">
+                            <div class="flex items-center justify-center space-x-2 py-3 px-4 bg-gray-50 border-b border-gray-100">
+                                <button id="prev-page" class="bg-primary-600 hover:bg-primary-700 text-white py-1.5 px-4 rounded-full text-sm flex items-center transition-colors">
+                                    <i class="fas fa-chevron-left mr-1.5"></i> Previous
                                 </button>
                                 <span id="page-info" class="mx-3 text-gray-700">Page: 1 / ?</span>
-                                <button id="next-page" class="bg-primary text-white py-1 px-3 rounded-full text-sm flex items-center">
-                                    Next <i class="fas fa-chevron-right ml-1"></i>
+                                <button id="next-page" class="bg-primary-600 hover:bg-primary-700 text-white py-1.5 px-4 rounded-full text-sm flex items-center transition-colors">
+                                    Next <i class="fas fa-chevron-right ml-1.5"></i>
                                 </button>
-                                <div class="ml-4 flex items-center">
-                                    <button id="zoom-out" class="text-gray-600 hover:text-gray-900"><i class="fas fa-search-minus"></i></button>
-                                    <span id="zoom-level" class="mx-2 text-sm">150%</span>
-                                    <button id="zoom-in" class="text-gray-600 hover:text-gray-900"><i class="fas fa-search-plus"></i></button>
+                                <div class="ml-4 flex items-center border-l border-gray-200 pl-3">
+                                    <button id="zoom-out" class="text-primary-600 hover:text-primary-800 px-1"><i class="fas fa-search-minus"></i></button>
+                                    <span id="zoom-level" class="mx-2 text-sm text-gray-700">150%</span>
+                                    <button id="zoom-in" class="text-primary-600 hover:text-primary-800 px-1"><i class="fas fa-search-plus"></i></button>
                                 </div>
                             </div>
-                            <canvas id="pdf-viewer" class="w-full border-gray-200"></canvas>
+                            <canvas id="pdf-viewer" class="w-full border-gray-100"></canvas>
                         </div>
                     `;
                     
@@ -811,8 +896,9 @@
                         console.error('Error loading PDF:', error);
                         fileContent.innerHTML = fileInfoHTML + `
                             <div class="mt-4">
-                                <div class="bg-red-50 text-red-600 p-4 rounded-lg">
-                                    Error loading PDF preview: ${error.message}
+                                <div class="bg-red-50 text-red-600 p-4 rounded-lg border border-red-100">
+                                    <p class="flex items-center"><i class="fas fa-exclamation-circle mr-2"></i> Error loading PDF preview</p>
+                                    <p class="text-sm mt-2">${error.message}</p>
                                 </div>
                             </div>
                         `;
@@ -823,27 +909,36 @@
             } else if (fileType.includes('word') || file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
                 contentPreviewHTML = `
                     <div class="mt-4">
-                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center text-gray-600">
+                        <div class="bg-primary-50 p-5 rounded-lg border border-primary-100 text-center text-gray-700">
+                            <div class="w-16 h-16 mx-auto mb-3 flex items-center justify-center text-3xl rounded-full bg-white text-primary-500 border border-primary-100">
+                                <i class="fas fa-file-word"></i>
+                            </div>
                             <p>DOCX content preview not available in browser.</p>
-                            <p class="mt-2">Markdown conversion will be displayed on the right panel.</p>
+                            <p class="mt-2 text-sm text-gray-500">Markdown conversion will be displayed on the right panel.</p>
                         </div>
                     </div>
                 `;
             } else if (fileType.includes('rtf') || file.name.endsWith('.rtf')) {
                 contentPreviewHTML = `
                     <div class="mt-4">
-                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center text-gray-600">
+                        <div class="bg-primary-50 p-5 rounded-lg border border-primary-100 text-center text-gray-700">
+                            <div class="w-16 h-16 mx-auto mb-3 flex items-center justify-center text-3xl rounded-full bg-white text-primary-400 border border-primary-100">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
                             <p>RTF content preview not available in browser.</p>
-                            <p class="mt-2">Markdown conversion will be displayed on the right panel.</p>
+                            <p class="mt-2 text-sm text-gray-500">Markdown conversion will be displayed on the right panel.</p>
                         </div>
                     </div>
                 `;
             } else {
                 contentPreviewHTML = `
                     <div class="mt-4">
-                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center text-gray-600">
+                        <div class="bg-gray-50 p-5 rounded-lg border border-gray-200 text-center text-gray-700">
+                            <div class="w-16 h-16 mx-auto mb-3 flex items-center justify-center text-3xl rounded-full bg-white text-gray-400 border border-gray-200">
+                                <i class="fas fa-file"></i>
+                            </div>
                             <p>No preview available for this file type.</p>
-                            <p class="mt-2">Markdown conversion will be displayed on the right panel.</p>
+                            <p class="mt-2 text-sm text-gray-500">Markdown conversion will be displayed on the right panel.</p>
                         </div>
                     </div>
                 `;
