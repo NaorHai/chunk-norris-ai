@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File to Markdown Converter</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PDF.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Marked.js for markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .app-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .split-view {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+        }
+        .panel {
+            flex: 1;
+            padding: 15px;
+            overflow: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            margin: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .file-preview {
+            background-color: #f8f9fa;
+        }
+        .markdown-preview {
+            background-color: #fff;
+        }
+        #drop-area {
+            border: 2px dashed #ccc;
+            border-radius: 20px;
+            width: 100%;
+            padding: 20px;
+            text-align: center;
+            background-color: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+        #drop-area.highlight {
+            border-color: #6c757d;
+            background-color: #e9ecef;
+        }
+        header {
+            background-color: #343a40;
+            color: white;
+            padding: 10px 0;
+            margin-bottom: 20px;
+        }
+        #file-info {
+            margin-top: 15px;
+        }
+        #file-content img {
+            max-width: 100%;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #markdown-content {
+            line-height: 1.6;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #fff;
+        }
+        #markdown-content img {
+            max-width: 100%;
+        }
+        #markdown-content pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        #markdown-content code {
+            background-color: #f5f5f5;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        #markdown-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        #markdown-content th, #markdown-content td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        #markdown-content th {
+            background-color: #f2f2f2;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .file-info-card {
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        .file-content-preview {
+            margin-top: 15px;
+            max-height: 650px;
+            overflow: auto;
+        }
+        .pdf-preview, .docx-preview, .rtf-preview, .text-preview {
+            font-family: monospace;
+            white-space: pre-wrap;
+            background-color: white;
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            height: 400px;
+            overflow: auto;
+        }
+        .file-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px auto;
+        }
+        .pdf-icon { 
+            color: #e74c3c; 
+            background-color: rgba(231, 76, 60, 0.1);
+        }
+        .doc-icon { 
+            color: #3498db; 
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+        .img-icon { 
+            color: #2ecc71; 
+            background-color: rgba(46, 204, 113, 0.1);
+        }
+        .text-icon { 
+            color: #95a5a6; 
+            background-color: rgba(149, 165, 166, 0.1);
+        }
+        #pdf-container {
+            width: 100%;
+            border-radius: 4px;
+            background-color: #fff;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            height: 620px;
+        }
+        #pdf-viewer {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #dee2e6;
+            background-color: #fff;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+            border-radius: 4px;
+        }
+        .pdf-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 25px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .pdf-controls button {
+            margin: 0 5px;
+            border-radius: 20px;
+            padding: 5px 15px;
+            transition: all 0.2s ease;
+        }
+        .pdf-controls button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+        }
+        #page-info {
+            margin: 0 10px;
+            font-weight: 500;
+            color: #495057;
+        }
+        .panel-header {
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            font-weight: 600;
+            color: #495057;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-type-badge {
+            background-color: #f8f9fa;
+            border-radius: 15px;
+            padding: 3px 10px;
+            font-size: 14px;
+            color: #495057;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            margin-left: 10px;
+        }
+        .zoom-button {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #6c757d;
+            margin: 0 5px;
+        }
+        .zoom-button:hover {
+            color: #343a40;
+        }
+        .btn-tool {
+            padding: 5px 10px;
+            margin: 0 5px;
+            border-radius: 20px;
+        }
+        .markdown-toggle {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <header class="text-center">
+        <h1>File to Markdown Converter</h1>
+        <p>Upload a document (PDF, DOCX, RTF, images) and see the markdown conversion</p>
+    </header>
+
+    <div class="container app-container">
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div id="drop-area">
+                    <form id="upload-form" class="my-3">
+                        <p>Drag & drop files here or click to select files</p>
+                        <input type="file" id="file-input" accept=".pdf,.docx,.doc,.rtf,.png,.jpg,.jpeg,.txt" class="d-none">
+                        <button id="select-button" type="button" class="btn btn-primary">Select a File</button>
+                        
+                        <!-- AI Refinement checkbox -->
+                        <div class="form-check mt-3 mb-3">
+                            <input class="form-check-input" type="checkbox" id="use-ai-refinement" checked>
+                            <label class="form-check-label" for="use-ai-refinement">
+                                Use AI to improve markdown formatting and structure
+                            </label>
+                            <small class="form-text text-muted d-block">
+                                This uses OpenAI's GPT-4o Mini to enhance the document structure and fix formatting issues.
+                            </small>
+                        </div>
+                        
+                        <!-- Chuck Norris AI checkbox -->
+                        <div class="form-check mt-3 mb-3">
+                            <input class="form-check-input" type="checkbox" id="use-chuck-norris-ai">
+                            <label class="form-check-label" for="use-chuck-norris-ai">
+                                <span class="fw-bold">Chuck Norris AI 💪</span>
+                            </label>
+                            <small class="form-text text-muted d-block">
+                                Bypass OCR completely and let AI directly interpret the image content. For images with complex layouts or when OCR is struggling.
+                            </small>
+                        </div>
+                    </form>
+                    <div id="file-info" class="d-none">
+                        <p><strong>Selected File:</strong> <span id="file-name"></span></p>
+                    </div>
+                    <div class="loader" id="loader"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="split-view">
+            <div class="panel file-preview">
+                <div class="panel-header">
+                    <h3>Original File</h3>
+                    <div id="original-file-tools"></div>
+                </div>
+                <div id="file-content">
+                    <p class="text-muted">File preview will appear here after uploading.</p>
+                </div>
+            </div>
+            <div class="panel markdown-preview">
+                <div class="panel-header">
+                    <h3>Markdown Output</h3>
+                    <div id="markdown-tools">
+                        <div class="markdown-toggle">
+                            <div class="form-check form-switch me-2">
+                                <input class="form-check-input" type="checkbox" id="show-rendered" checked>
+                                <label class="form-check-label" for="show-rendered">
+                                    Show rendered
+                                </label>
+                            </div>
+                        </div>
+                        <button id="copy-markdown" class="btn btn-sm btn-outline-secondary btn-tool">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                </div>
+                <div id="markdown-content">
+                    <p class="text-muted">Markdown output will appear here after uploading a file.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Get DOM elements
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('file-input');
+        const selectButton = document.getElementById('select-button');
+        const uploadForm = document.getElementById('upload-form');
+        const fileInfo = document.getElementById('file-info');
+        const fileName = document.getElementById('file-name');
+        const fileContent = document.getElementById('file-content');
+        const markdownContent = document.getElementById('markdown-content');
+        const loader = document.getElementById('loader');
+        const copyMarkdownBtn = document.getElementById('copy-markdown');
+        const showRenderedToggle = document.getElementById('show-rendered');
+        
+        // Current PDF state
+        let currentPdfDoc = null;
+        let currentPage = 1;
+        let totalPages = 0;
+        let currentScale = 1.5;
+        
+        // Store the raw markdown
+        let rawMarkdown = '';
+
+        // Toggle between raw and rendered markdown
+        showRenderedToggle.addEventListener('change', function() {
+            if (this.checked) {
+                // Show rendered markdown
+                markdownContent.innerHTML = marked.parse(rawMarkdown);
+            } else {
+                // Show raw markdown
+                markdownContent.innerHTML = `<pre>${rawMarkdown}</pre>`;
+            }
+        });
+
+        // Copy markdown to clipboard
+        copyMarkdownBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(rawMarkdown).then(() => {
+                const originalText = copyMarkdownBtn.innerHTML;
+                copyMarkdownBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => {
+                    copyMarkdownBtn.innerHTML = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Error copying text: ', err);
+            });
+        });
+
+        // Prevent defaults for drag events
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // Highlight drop area when file is dragged over it
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight() {
+            dropArea.classList.add('highlight');
+        }
+
+        function unhighlight() {
+            dropArea.classList.remove('highlight');
+        }
+
+        // Handle dropped files
+        dropArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length) {
+                handleFiles(files);
+            }
+        }
+
+        // Handle file selection
+        selectButton.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function() {
+            if (this.files.length) {
+                handleFiles(this.files);
+            }
+        });
+
+        function handleFiles(files) {
+            const file = files[0]; // Only handle the first file
+            fileName.textContent = file.name;
+            fileInfo.classList.remove('d-none');
+            
+            // Show loading indicator
+            loader.style.display = 'block';
+            
+            // Clear previous content
+            fileContent.innerHTML = '<p>Processing file...</p>';
+            markdownContent.innerHTML = '<p>Converting to markdown...</p>';
+            
+            // Display file preview based on file type
+            displayFilePreview(file);
+            
+            // Create FormData and upload
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // Add the AI refinement preference
+            const useAiRefinement = document.getElementById('use-ai-refinement').checked;
+            formData.append('use_ai_refinement', useAiRefinement);
+            
+            // Add the Chuck Norris AI preference
+            const useChuckNorrisAi = document.getElementById('use-chuck-norris-ai').checked;
+            formData.append('use_chuck_norris_ai', useChuckNorrisAi);
+            
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Hide loader
+                loader.style.display = 'none';
+                
+                if (data.success) {
+                    // Store the raw markdown
+                    rawMarkdown = data.markdown;
+                    
+                    // Display rendered or raw markdown based on toggle
+                    if (showRenderedToggle.checked) {
+                        markdownContent.innerHTML = marked.parse(rawMarkdown);
+                    } else {
+                        markdownContent.innerHTML = `<pre>${rawMarkdown}</pre>`;
+                    }
+                    
+                    // For image files, update the src to the server path if needed
+                    if (data.imagePath) {
+                        updateImagePathsInMarkdown(data.imagePath);
+                    }
+                } else {
+                    // Show error
+                    markdownContent.innerHTML = `<p class="text-danger">Error: ${data.error || 'Unknown error'}</p>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                loader.style.display = 'none';
+                markdownContent.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
+            });
+        }
+
+        function updateImagePathsInMarkdown(serverPath) {
+            // This function can be used to update image paths in markdown if needed
+        }
+
+        // Add the missing formatFileSize function
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Add the missing getFileTypeFromName function
+        function getFileTypeFromName(filename) {
+            const extension = filename.split('.').pop().toLowerCase();
+            const typeMap = {
+                'pdf': 'application/pdf',
+                'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'doc': 'application/msword',
+                'rtf': 'application/rtf',
+                'png': 'image/png',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'txt': 'text/plain'
+            };
+            return typeMap[extension] || 'application/octet-stream';
+        }
+
+        // Add function to update zoom level display
+        function updateZoomLevel() {
+            const zoomLevelElement = document.getElementById('zoom-level');
+            if (zoomLevelElement) {
+                zoomLevelElement.textContent = `${Math.round(currentScale * 100)}%`;
+            }
+        }
+
+        // Function to render a PDF page
+        function renderPage(num) {
+            if (!currentPdfDoc) return;
+            
+            currentPdfDoc.getPage(num).then(page => {
+                const canvas = document.getElementById('pdf-viewer');
+                const ctx = canvas.getContext('2d');
+                
+                // Set viewport
+                const viewport = page.getViewport({ scale: currentScale });
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                
+                // Render PDF page
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                
+                page.render(renderContext);
+                
+                // Update page info
+                document.getElementById('page-info').textContent = `Page: ${num} / ${totalPages}`;
+            });
+        }
+
+        function displayFilePreview(file) {
+            const fileType = file.type || getFileTypeFromName(file.name);
+            let fileIcon = '';
+            let iconClass = '';
+            
+            // Reset the original file tools
+            document.getElementById('original-file-tools').innerHTML = '';
+            
+            // Determine file icon based on type
+            if (fileType.includes('pdf')) {
+                fileIcon = '<i class="fas fa-file-pdf"></i>';
+                iconClass = 'pdf-icon';
+            } else if (fileType.includes('word') || file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
+                fileIcon = '<i class="fas fa-file-word"></i>';
+                iconClass = 'doc-icon';
+            } else if (fileType.includes('rtf') || file.name.endsWith('.rtf')) {
+                fileIcon = '<i class="fas fa-file-alt"></i>';
+                iconClass = 'doc-icon';
+            } else if (fileType.includes('image')) {
+                fileIcon = '<i class="fas fa-file-image"></i>';
+                iconClass = 'img-icon';
+            } else {
+                fileIcon = '<i class="fas fa-file-alt"></i>';
+                iconClass = 'text-icon';
+            }
+            
+            // Create file info card
+            const fileInfoHTML = `
+                <div class="file-info-card">
+                    <div class="file-icon ${iconClass}">${fileIcon}</div>
+                    <h4>${file.name}</h4>
+                    <div class="file-type-badge">${fileType || 'Unknown'}</div>
+                    <p>Size: ${formatFileSize(file.size)}</p>
+                </div>
+            `;
+            
+            // Create content preview based on file type
+            let contentPreviewHTML = '';
+            
+            if (fileType.includes('image')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imgPreview = `
+                        <div class="file-content-preview">
+                            <img src="${e.target.result}" alt="${file.name}" class="img-fluid">
+                        </div>
+                    `;
+                    fileContent.innerHTML = fileInfoHTML + imgPreview;
+                };
+                reader.readAsDataURL(file);
+                return;
+            } else if (fileType.includes('text') || fileType.includes('plain')) {
+                // For text files, read and display content
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const textPreview = `
+                        <div class="file-content-preview">
+                            <pre>${e.target.result}</pre>
+                        </div>
+                    `;
+                    fileContent.innerHTML = fileInfoHTML + textPreview;
+                };
+                reader.readAsText(file);
+                return;
+            }
+            
+            fileContent.innerHTML = fileInfoHTML + contentPreviewHTML;
+        }
+    </script>
+</body>
+</html>
