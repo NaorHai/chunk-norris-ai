@@ -432,49 +432,54 @@
                             Select a File
                         </label>
                         
-                        <!-- AI Refinement checkbox -->
-                        <div class="mt-8 mb-4">
-                            <div class="flex items-start">
-                                <input class="w-5 h-5 text-primary-500 focus:ring-primary-400 rounded" type="checkbox" id="use-ai-refinement" checked>
-                                <label class="ml-2 text-gray-700 font-medium" for="use-ai-refinement">
-                                    Use Tesseract (OCR) & AI
-                                </label>
+                        <!-- Mode selection radio buttons -->
+                        <div class="mt-8 text-left">
+                            <h4 class="font-medium text-gray-700 mb-3">Processing Mode:</h4>
+                            
+                            <!-- AI Refinement radio button -->
+                            <div class="mb-4">
+                                <div class="flex items-start">
+                                    <input class="w-5 h-5 text-primary-500 focus:ring-primary-400" type="radio" id="use-ai-refinement" name="processing-mode" value="ai-refinement" checked>
+                                    <label class="ml-2 text-gray-700 font-medium" for="use-ai-refinement">
+                                        Use Tesseract (OCR) & AI
+                                    </label>
+                                </div>
+                                <p class="text-sm text-gray-500 mt-1 ml-7 align-left">
+                                    Use Tesseract for text extraction and OpenAI's GPT-4o Mini to improve document structure and correct formatting inconsistencies.
+                                </p>
                             </div>
-                            <p class="text-sm text-gray-500 mt-1 ml-7 align-left">
-                                Tesseract for text extraction and OpenAI's GPT-4o Mini to improve document structure and correct formatting inconsistencies.
-                            </p>
-                        </div>
-                        
-                        <!-- Chuck Norris AI checkbox -->
-                        <div class="mt-6 mb-4">
-                            <div class="flex items-start">
-                                <input class="w-5 h-5 text-secondary-500 focus:ring-secondary-400 rounded" type="checkbox" id="use-chuck-norris-ai">
-                                <label class="ml-2 text-gray-700" for="use-chuck-norris-ai">
-                                    <span class="font-semibold flex items-center">
-                                        Chuck Norris AI
-                                        <span class="inline-flex ml-2 bg-secondary-500 text-white rounded-full h-6 w-6 items-center justify-center">💪</span>
-                                    </span>
-                                </label>
+                            
+                            <!-- Chuck Norris AI radio button -->
+                            <div class="mb-4">
+                                <div class="flex items-start">
+                                    <input class="w-5 h-5 text-secondary-500 focus:ring-secondary-400" type="radio" id="use-chuck-norris-ai" name="processing-mode" value="chuck-norris-ai">
+                                    <label class="ml-2 text-gray-700" for="use-chuck-norris-ai">
+                                        <span class="font-semibold flex items-center">
+                                            Chuck Norris AI
+                                            <span class="inline-flex ml-2 bg-secondary-500 text-white rounded-full h-6 w-6 items-center justify-center">💪</span>
+                                        </span>
+                                    </label>
+                                </div>
+                                <p class="text-sm text-gray-500 mt-1 ml-7 align-left">
+                                    Bypass OCR completely and let AI directly interpret the image content. For images with complex layouts or when OCR is struggling.
+                                </p>
                             </div>
-                            <p class="text-sm text-gray-500 mt-1 ml-7 align-left">
-                                Bypass OCR completely and let AI directly interpret the image content. For images with complex layouts or when OCR is struggling.
-                            </p>
-                        </div>
-                        
-                        <!-- Chuck Norris AI PRO checkbox -->
-                        <div class="mt-3 mb-4">
-                            <div class="flex items-start">
-                                <input class="w-5 h-5 text-red-500 focus:ring-red-400 rounded" type="checkbox" id="use-chuck-norris-ai-pro">
-                                <label class="ml-2 text-gray-700" for="use-chuck-norris-ai-pro">
-                                    <span class="font-semibold flex items-center">
-                                        Chuck Norris AI PRO
-                                        <span class="inline-flex ml-2 bg-red-500 text-white rounded-full px-2 text-xs font-bold">PRO</span>
-                                    </span>
-                                </label>
+                            
+                            <!-- Chuck Norris AI PRO radio button -->
+                            <div class="mb-4">
+                                <div class="flex items-start">
+                                    <input class="w-5 h-5 text-red-500 focus:ring-red-400" type="radio" id="use-chuck-norris-ai-pro" name="processing-mode" value="chuck-norris-ai-pro">
+                                    <label class="ml-2 text-gray-700" for="use-chuck-norris-ai-pro">
+                                        <span class="font-semibold flex items-center">
+                                            Chuck Norris AI PRO
+                                            <span class="inline-flex ml-2 bg-red-500 text-white rounded-full px-2 text-xs font-bold">PRO</span>
+                                        </span>
+                                    </label>
+                                </div>
+                                <p class="text-sm text-gray-500 mt-1 ml-7 align-left">
+                                    Activate ultimate power mode for even more accurate document transformations.
+                                </p>
                             </div>
-                            <p class="text-sm text-gray-500 mt-1 ml-7 align-left">
-                                Activate ultimate power mode for even more accurate document transformations.
-                            </p>
                         </div>
                     </form>
                     <div id="file-info" class="hidden mt-6">
@@ -560,38 +565,37 @@
         // Store the raw markdown
         let rawMarkdown = '';
 
-        // Add event listener for Chuck Norris AI checkbox
-        document.getElementById('use-chuck-norris-ai').addEventListener('change', function() {
-            // If we're currently loading, switch loaders
-            if (loader.classList.contains('block') || chuckNorrisLoader.style.display === 'block') {
-                if (this.checked) {
-                    loader.classList.remove('block');
-                    loader.classList.add('hidden');
-                    chuckNorrisLoader.style.display = 'block';
-                } else {
-                    loader.classList.remove('hidden');
-                    loader.classList.add('block');
-                    chuckNorrisLoader.style.display = 'none';
+        // Add event listeners for radio button changes
+        document.querySelectorAll('input[name="processing-mode"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                // If we're currently loading, switch loaders based on the selected mode
+                if (loader.classList.contains('block') || chuckNorrisLoader.style.display === 'block') {
+                    if (this.id === 'use-chuck-norris-ai' || this.id === 'use-chuck-norris-ai-pro') {
+                        loader.classList.remove('block');
+                        loader.classList.add('hidden');
+                        chuckNorrisLoader.style.display = 'block';
+                    } else {
+                        loader.classList.remove('hidden');
+                        loader.classList.add('block');
+                        chuckNorrisLoader.style.display = 'none';
+                    }
                 }
-            }
-        });
-        
-        // Add event listener for Chuck Norris AI PRO checkbox
-        document.getElementById('use-chuck-norris-ai-pro').addEventListener('change', function() {
-            if (this.checked) {
-                // Show popup message
-                document.getElementById('pro-overlay').style.display = 'block';
-                document.getElementById('chuck-norris-pro-popup').style.display = 'block';
                 
-                // Uncheck the box since Chuck Norris doesn't need Pro Mode
-                setTimeout(() => {
-                    this.checked = false;
-                }, 100);
-            }
+                // Special handling for Chuck Norris AI PRO
+                if (this.id === 'use-chuck-norris-ai-pro') {
+                    // Show popup message
+                    document.getElementById('pro-overlay').style.display = 'block';
+                    document.getElementById('chuck-norris-pro-popup').style.display = 'block';
+                    
+                    // Switch to regular Chuck Norris AI since Chuck Norris doesn't need Pro Mode
+                    setTimeout(() => {
+                        document.getElementById('use-chuck-norris-ai').checked = true;
+                    }, 100);
+                }
+            });
         });
         
         // Close popup when button is clicked
-
         function closeProPopup() {
             document.getElementById('pro-overlay').style.display = 'none';
             document.getElementById('chuck-norris-pro-popup').style.display = 'none';
@@ -689,11 +693,8 @@
             fileName.textContent = file.name;
             fileInfo.classList.remove('hidden');
             
-            // Add the Chuck Norris AI preference
-            const useChuckNorrisAi = document.getElementById('use-chuck-norris-ai').checked;
-            
             // Show appropriate loading indicator
-            if (useChuckNorrisAi) {
+            if (document.getElementById('use-chuck-norris-ai').checked) {
                 chuckNorrisLoader.style.display = 'block';
             } else {
                 loader.classList.remove('hidden');
@@ -711,14 +712,28 @@
             const formData = new FormData();
             formData.append('file', file);
             
-            // Add the AI refinement preference
-            const useAiRefinement = document.getElementById('use-ai-refinement').checked;
+            // Get the selected processing mode
+            const processingMode = document.querySelector('input[name="processing-mode"]:checked').value;
+            console.log('Selected processing mode:', processingMode);
+            
+            // Set flags based on the selected mode
+            let useAiRefinement = false;
+            let useChuckNorrisAi = false;
+            
+            if (processingMode === 'ai-refinement') {
+                useAiRefinement = true;
+                useChuckNorrisAi = false;
+            } else if (processingMode === 'chuck-norris-ai' || processingMode === 'chuck-norris-ai-pro') {
+                useAiRefinement = false;
+                useChuckNorrisAi = true;
+            }
+            
+            console.log('Use AI refinement:', useAiRefinement);
+            console.log('Use Chuck Norris AI:', useChuckNorrisAi);
+            
+            // Add parameters to the form data
             formData.append('use_ai_refinement', useAiRefinement);
-            
-            // Add the Chuck Norris AI preference
             formData.append('use_chuck_norris_ai', useChuckNorrisAi);
-            
-            console.log('Uploading file with AI refinement:', useAiRefinement, 'Chuck Norris AI:', useChuckNorrisAi);
             
             fetch('/upload', {
                 method: 'POST',
@@ -1056,6 +1071,172 @@
             }
 
             fileContent.innerHTML = fileInfoHTML + contentPreviewHTML;
+        }
+
+        // Process upload response and update markdown
+        function processUploadResponse(response) {
+            uploadInProgress = false;
+            
+            // Hide both loaders
+            document.getElementById('loader').classList.add('hidden');
+            document.getElementById('chuck-norris-loader').style.display = 'none';
+            
+            // Enable drop area
+            enableDropArea();
+            
+            if (response.error) {
+                // Handle error
+                Swal.fire({
+                    title: 'Error',
+                    text: response.error,
+                    icon: 'error',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#0077ff'
+                });
+                return;
+            }
+            
+            // Show success message using SweetAlert2
+            Swal.fire({
+                title: 'Success!',
+                text: 'File processed successfully',
+                icon: 'success',
+                confirmButtonText: 'View Results',
+                confirmButtonColor: '#0077ff',
+                timer: 2000,
+                timerProgressBar: true,
+                showConfirmButton: false
+            });
+            
+            // Update markdown content
+            document.getElementById('markdown-content').innerHTML = marked.parse(response.markdown || '');
+            
+            // Apply syntax highlighting to code blocks
+            document.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+            
+            // Show split view
+            document.querySelector('.split-view').classList.remove('hidden');
+            
+            // Update file preview based on type
+            const filePreview = document.getElementById('file-content');
+            const fileName = response.filename;
+            const fileType = getFileTypeFromName(fileName);
+            
+            // Clear any previous content
+            filePreview.innerHTML = '';
+            
+            // Update original file view based on file type or HTML preview
+            if (response.html_preview && response.is_rtf) {
+                // For RTF files with HTML preview, show in iframe
+                const iframe = document.createElement('iframe');
+                iframe.src = response.html_preview;
+                iframe.className = 'w-full h-full border-0 min-h-[500px]';
+                iframe.style.height = 'calc(100vh - 300px)';
+                filePreview.appendChild(iframe);
+            } else if (response.imagePath) {
+                // For image files
+                const img = document.createElement('img');
+                img.src = response.imagePath;
+                img.alt = fileName;
+                img.className = 'max-w-full mx-auto rounded shadow-sm';
+                filePreview.appendChild(img);
+            } else {
+                // For non-image files without HTML preview
+                const placeholder = document.createElement('div');
+                placeholder.className = 'bg-gray-50 p-5 rounded-lg border border-gray-200 text-center';
+                
+                let fileIcon = '';
+                let iconClass = '';
+                
+                if (fileType.includes('pdf')) {
+                    fileIcon = 'file-pdf';
+                    iconClass = 'text-red-500';
+                } else if (fileType.includes('word') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
+                    fileIcon = 'file-word';
+                    iconClass = 'text-blue-500';
+                } else if (fileType.includes('rtf') || fileName.endsWith('.rtf')) {
+                    fileIcon = 'file-alt';
+                    iconClass = 'text-orange-500';
+                } else {
+                    fileIcon = 'file-alt';
+                    iconClass = 'text-gray-500';
+                }
+                
+                placeholder.innerHTML = `
+                    <div class="w-20 h-20 mx-auto mb-4 flex items-center justify-center text-4xl rounded-full bg-white ${iconClass} border border-gray-200">
+                        <i class="fas fa-${fileIcon}"></i>
+                    </div>
+                    <h4 class="text-lg font-semibold mb-2">${fileName}</h4>
+                    <p class="text-gray-600">Original file content preview not available</p>
+                    <p class="mt-2 text-sm text-gray-500">Markdown conversion is displayed on the right panel</p>
+                `;
+                
+                filePreview.appendChild(placeholder);
+            }
+        }
+
+        // Handle file upload
+        function uploadFile(file) {
+            if (!file) return;
+            
+            // Show loading spinner
+            if (document.getElementById('use-chuck-norris-ai').checked || document.getElementById('use-chuck-norris-ai-pro').checked) {
+                document.getElementById('chuck-norris-loader').style.display = 'block';
+            } else {
+                document.getElementById('loader').classList.remove('hidden');
+            }
+            
+            // Disable drop area during upload
+            disableDropArea();
+            
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // Set processing options based on radio selection
+            if (document.getElementById('use-chuck-norris-ai-pro').checked) {
+                // Show Chuck Norris Pro popup instead of actually using it
+                showProPopup();
+                formData.append('use_chuck_norris_ai', 'true');
+                formData.append('use_ai_refinement', 'false');
+            } else if (document.getElementById('use-chuck-norris-ai').checked) {
+                formData.append('use_chuck_norris_ai', 'true');
+                formData.append('use_ai_refinement', 'false');
+            } else {
+                formData.append('use_chuck_norris_ai', 'false');
+                formData.append('use_ai_refinement', 'true');
+            }
+            
+            // Track upload status
+            uploadInProgress = true;
+            
+            // Make API request
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                processUploadResponse(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                uploadInProgress = false;
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('chuck-norris-loader').style.display = 'none';
+                
+                enableDropArea();
+                
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Failed to process file. Please try again.',
+                    icon: 'error',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#0077ff'
+                });
+            });
         }
     </script>
     
