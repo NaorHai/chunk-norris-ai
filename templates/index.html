@@ -126,6 +126,9 @@
             padding: 15px 0;
             margin-bottom: 20px;
         }
+        .align-left {
+            text-align: left;
+        }
         .logo-container {
             display: flex;
             align-items: center;
@@ -434,11 +437,11 @@
                             <div class="flex items-start">
                                 <input class="w-5 h-5 text-primary-500 focus:ring-primary-400 rounded" type="checkbox" id="use-ai-refinement" checked>
                                 <label class="ml-2 text-gray-700 font-medium" for="use-ai-refinement">
-                                    Use AI to improve markdown formatting and structure
+                                    Use Tesseract (OCR) & AI
                                 </label>
                             </div>
-                            <p class="text-sm text-gray-500 mt-1 ml-7">
-                                This uses OpenAI's GPT-4o Mini to enhance the document structure and fix formatting issues.
+                            <p class="text-sm text-gray-500 mt-1 ml-7 align-left">
+                                Tesseract for text extraction and OpenAI's GPT-4o Mini to improve document structure and correct formatting inconsistencies.
                             </p>
                         </div>
                         
@@ -453,7 +456,7 @@
                                     </span>
                                 </label>
                             </div>
-                            <p class="text-sm text-gray-500 mt-1 ml-7">
+                            <p class="text-sm text-gray-500 mt-1 ml-7 align-left">
                                 Bypass OCR completely and let AI directly interpret the image content. For images with complex layouts or when OCR is struggling.
                             </p>
                         </div>
@@ -469,7 +472,7 @@
                                     </span>
                                 </label>
                             </div>
-                            <p class="text-sm text-gray-500 mt-1 ml-7">
+                            <p class="text-sm text-gray-500 mt-1 ml-7 align-left">
                                 Activate ultimate power mode for even more accurate document transformations.
                             </p>
                         </div>
@@ -588,12 +591,10 @@
         });
         
         // Close popup when button is clicked
-        const closeProPopupBtn = document.getElementById('close-pro-popup');
-        if (closeProPopupBtn) {
-            closeProPopupBtn.addEventListener('click', function() {
-                document.getElementById('pro-overlay').style.display = 'none';
-                document.getElementById('chuck-norris-pro-popup').style.display = 'none';
-            });
+
+        function closeProPopup() {
+            document.getElementById('pro-overlay').style.display = 'none';
+            document.getElementById('chuck-norris-pro-popup').style.display = 'none';
         }
         
         // Also close popup when clicking on overlay
@@ -1063,7 +1064,7 @@
     <div class="chuck-norris-pro-popup" id="chuck-norris-pro-popup">
         <h3>Chuck Norris Says:</h3>
         <p>"Chuck Norris doesn't need Pro Mode. He is the mode."</p>
-        <button class="chuck-norris-pro-close" id="close-pro-popup">Got it!</button>
+        <button class="chuck-norris-pro-close" id="close-pro-popup" onclick="closeProPopup()">Got it!</button>
     </div>
 </body>
 </html>
