@@ -358,10 +358,8 @@ class OntologyGraphProcessor:
                 edges.append(edge)
                 logger.info(f"🔹 Processed edge: {json.dumps(edge, indent=2)}")
             
-            graph_result = {
-                "nodes": nodes,
-                "edges": edges
-            }
+            # Format the result for the UI
+            graph_result = self._format_graph_for_ui(nodes, edges)
             
             logger.info(f"✅ Retrieved graph with {len(nodes)} nodes and {len(edges)} edges")
             return graph_result
@@ -370,6 +368,47 @@ class OntologyGraphProcessor:
             logger.error(f"❌ Error executing graph queries: {str(e)}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             return {"nodes": [], "edges": []}
+
+    def _format_graph_for_ui(self, nodes, edges):
+        """
+        Format the graph data to match what the UI expects.
+        
+        Args:
+            nodes: List of node dictionaries from FalkorDB
+            edges: List of edge dictionaries from FalkorDB
+            
+        Returns:
+            A dictionary with nodes and edges in the format expected by the UI
+        """
+        ui_nodes = []
+        ui_edges = []
+        
+        # Process nodes to match UI expectations
+        for node in nodes:
+            properties = node['properties']
+            ui_node = {
+                "id": node['id'],
+                "title": properties.get('name', 'Unknown'),
+                "type": properties.get('category', 'Entity'),
+                "summary": properties.get('description', ''),
+                "labels": node['labels']
+            }
+            ui_nodes.append(ui_node)
+        
+        # Process edges to match UI expectations
+        for edge in edges:
+            ui_edge = {
+                "source": edge['source'],
+                "target": edge['target'],
+                "relation": edge['type'],
+                "properties": edge['properties']
+            }
+            ui_edges.append(ui_edge)
+        
+        return {
+            "nodes": ui_nodes,
+            "edges": ui_edges
+        }
 
     def generate_ontology_graph(self, markdown_content: str) -> Dict[str, Any]:
         """
