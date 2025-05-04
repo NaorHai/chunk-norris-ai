@@ -166,114 +166,50 @@ class OntologyGraphProcessor:
             return {"entities": [], "relations": []}
             
     def create_graph_queries(self, entities, relations):
-        """Create graph queries from entities and relations."""
-        try:
-            queries = []
+        """
+        Create graph queries for entities and relations.
+        """
+        queries = []
+        
+        # Create node queries
+        for entity in entities:
+            query = """
+                CREATE (:Entity {
+                    name: $name,
+                    description: $description,
+                    category: $category
+                })
+            """
+            params = {
+                "name": entity["name"],
+                "description": entity["description"],
+                "category": entity["category"]
+            }
+            queries.append((query, params))
+        
+        # Create edge queries
+        for relation in relations:
+            # Clean up relationship type (replace spaces with underscores)
+            rel_type = relation["type"].replace(" ", "_")
             
-            # Log the input data
-            self.logger.info(f"🔹 Processing {len(entities)} entities and {len(relations)} relations")
-            self.logger.info(f"🔹 Sample entity: {json.dumps(entities[0] if entities else {}, indent=2)}")
-            self.logger.info(f"🔹 Sample relation: {json.dumps(relations[0] if relations else {}, indent=2)}")
-            
-            # Create nodes for each entity
-            for entity in entities:
-                # Handle both old and new entity formats
-                if 'attributes' in entity:
-                    # Old format: entity has attributes dictionary
-                    name = entity['attributes'].get('name', 'Unknown')
-                    category = entity['attributes'].get('category', 'General')
-                    properties = entity['attributes'].get('properties', {})
-                else:
-                    # New format: direct fields
-                    name = entity.get('name', 'Unknown')
-                    category = entity.get('category', 'General')
-                    properties = entity.get('properties', {})
-                
-                # Clean up property names
-                clean_properties = {}
-                for key, value in properties.items():
-                    # Replace spaces and special characters with underscores
-                    clean_key = key.replace(' ', '_').replace('-', '_').replace('(', '').replace(')', '')
-                    # Convert lists to JSON strings
-                    if isinstance(value, list):
-                        value = json.dumps(value)
-                    clean_properties[clean_key] = value
-                
-                # Add required properties
-                clean_properties['name'] = name  # Use the actual name from the entity
-                clean_properties['description'] = entity.get('description', '')
-                clean_properties['category'] = category
-                
-                # Create property string for query
-                prop_str = ', '.join([f"{k}: '{v}'" for k, v in clean_properties.items()])
-                
-                # Create node query with unique name
-                query = """
-                    CREATE (:Entity {
-                        name: $name,
-                        description: $description,
-                        category: $category
-                    })
-                """
-                params = {
-                    'name': entity.get('name', 'Unknown'),  # Use the actual name from the entity
-                    'description': entity.get('description', ''),
-                    'category': entity.get('category', 'General')
-                }
-                queries.append((query, params))
-                self.logger.info(f"🔹 Created node query with params: {params}")
-            
-            # Create edges for each relation
-            for relation in relations:
-                # Ensure required attributes
-                if 'source' not in relation or 'target' not in relation:
-                    self.logger.warning(f"⚠️ Skipping relation with missing source/target: {relation}")
-                    continue
-                
-                # Clean up relationship type
-                rel_type = relation.get('type', 'CONNECTED_TO').replace(' ', '_')
-                
-                # Clean up property names
-                properties = {}
-                for key, value in relation.get('properties', {}).items():
-                    # Replace spaces and special characters with underscores
-                    clean_key = key.replace(' ', '_').replace('-', '_').replace('(', '').replace(')', '')
-                    # Convert lists to JSON strings
-                    if isinstance(value, list):
-                        value = json.dumps(value)
-                    properties[clean_key] = value
-                
-                # Add required properties
-                properties['description'] = relation.get('description', '')
-                properties['type'] = rel_type
-                if 'direction' in relation:
-                    properties['direction'] = relation['direction']
-                
-                # Create property string for query
-                prop_str = ', '.join([f"{k}: '{v}'" for k, v in properties.items()])
-                
-                # Create edge query with proper node matching
-                query = f"""
-                    MATCH (source:Entity {{name: $source_name}})
-                    MATCH (target:Entity {{name: $target_name}})
-                    CREATE (source)-[:{rel_type} {{{prop_str}}}]->(target)
-                """
-                params = {
-                    'source_name': relation['source'],
-                    'target_name': relation['target']
-                }
-                queries.append((query, params))
-                self.logger.info(f"🔹 Created edge query: {query}")
-                self.logger.info(f"🔹 Edge query params: {params}")
-                self.logger.info(f"🔹 Edge properties: {properties}")
-            
-            self.logger.info(f"✅ Successfully created {len(queries)} graph queries")
-            return queries
-            
-        except Exception as e:
-            self.logger.error(f"❌ Error creating graph queries: {str(e)}")
-            self.logger.error(f"Traceback: {traceback.format_exc()}")
-            return []
+            # Escape apostrophes in the description
+            description = relation["description"].replace("'", "\\'")
+            query = f"""
+                MATCH (source:Entity {{name: $source_name}})
+                MATCH (target:Entity {{name: $target_name}})
+                CREATE (source)-[:{rel_type} {{
+                    description: '{description}',
+                    type: '{relation["type"]}',
+                    direction: '{relation["direction"]}'
+                }}]->(target)
+            """
+            params = {
+                "source_name": relation["source"],
+                "target_name": relation["target"]
+            }
+            queries.append((query, params))
+        
+        return queries
 
     def execute_graph_queries(self, queries: List[str]) -> Dict[str, Any]:
         """
@@ -318,7 +254,8 @@ class OntologyGraphProcessor:
                        source.name as source,
                        target.name as target,
                        labels(source) as sourceLabels,
-                       labels(target) as targetLabels
+                       labels(target) as targetLabels,
+                       id(r) as id
             """)
             logger.info(f"🔹 Found {len(edges_result.result_set)} edges")
             
@@ -347,22 +284,28 @@ class OntologyGraphProcessor:
                 source_name = record[2]
                 target_name = record[3]
                 
+                # Skip if either source or target is not found
+                if source_name not in node_indices or target_name not in node_indices:
+                    logger.warning(f"⚠️ Skipping edge: Invalid source or target node (source={source_name}, target={target_name})")
+                    continue
+                
                 edge = {
+                    "id": record[6],  # Add edge ID
                     "type": record[0],
                     "properties": record[1],
-                    "source": node_indices.get(source_name),  # Use node indices
-                    "target": node_indices.get(target_name),
+                    "source": node_indices[source_name],  # Use node indices
+                    "target": node_indices[target_name],
                     "sourceNode": source_name,
                     "targetNode": target_name
                 }
                 edges.append(edge)
                 logger.info(f"🔹 Processed edge: {json.dumps(edge, indent=2)}")
             
-            # Format the result for the UI
-            graph_result = self._format_graph_for_ui(nodes, edges)
-            
             logger.info(f"✅ Retrieved graph with {len(nodes)} nodes and {len(edges)} edges")
-            return graph_result
+            return {
+                "nodes": nodes,
+                "edges": edges
+            }
             
         except Exception as e:
             logger.error(f"❌ Error executing graph queries: {str(e)}")
@@ -371,11 +314,11 @@ class OntologyGraphProcessor:
 
     def _format_graph_for_ui(self, nodes, edges):
         """
-        Format the graph data to match what the UI expects.
+        Format the graph data for UI display.
         
         Args:
-            nodes: List of node dictionaries from FalkorDB
-            edges: List of edge dictionaries from FalkorDB
+            nodes: List of node dictionaries
+            edges: List of edge dictionaries
             
         Returns:
             A dictionary with nodes and edges in the format expected by the UI
@@ -385,23 +328,22 @@ class OntologyGraphProcessor:
         
         # Process nodes to match UI expectations
         for node in nodes:
-            properties = node['properties']
             ui_node = {
-                "id": node['id'],
-                "title": properties.get('name', 'Unknown'),
-                "type": properties.get('category', 'Entity'),
-                "summary": properties.get('description', ''),
-                "labels": node['labels']
+                "id": node["id"],
+                "title": node["properties"].get("name", "Unknown"),
+                "type": node["properties"].get("category", "Entity"),
+                "summary": node["properties"].get("description", ""),
+                "labels": node["labels"]
             }
             ui_nodes.append(ui_node)
         
         # Process edges to match UI expectations
         for edge in edges:
             ui_edge = {
-                "source": edge['source'],
-                "target": edge['target'],
-                "relation": edge['type'],
-                "properties": edge['properties']
+                "source": edge["source"],
+                "target": edge["target"],
+                "relation": edge["type"],
+                "properties": edge["properties"]
             }
             ui_edges.append(ui_edge)
         
@@ -412,65 +354,37 @@ class OntologyGraphProcessor:
 
     def generate_ontology_graph(self, markdown_content: str) -> Dict[str, Any]:
         """
-        Generate an ontology graph from markdown content
+        Generate an ontology graph from markdown content.
         
         Args:
-            markdown_content: The markdown content to analyze
+            markdown_content: The markdown content to process
             
         Returns:
             A dictionary containing the ontology graph structure
         """
         logger.info("\n=== ONTOLOGY GRAPH GENERATION ===")
         logger.info(f"📝 Received markdown content length: {len(markdown_content)} characters")
-        start_time = time.time()
         
         try:
             # Extract entities and relations
+            logger.info("🔹 Extracting entities and relations...")
             data = self.extract_entities_and_relations(markdown_content)
             
             # Create graph queries
             queries = self.create_graph_queries(data["entities"], data["relations"])
             
-            # Execute queries and get graph results
+            # Execute queries and get graph result
             graph_result = self.execute_graph_queries(queries)
             
-            # Save results to files
-            os.makedirs('falkordb', exist_ok=True)
-            
-            # Save the full result
-            result = {
-                "data": data,
-                "queries": queries,
-                "graph": graph_result
-            }
-            
-            with open('falkordb/ontology_result.json', 'w') as f:
-                json.dump(result, f, indent=2)
-            
-            # Save the graph data separately
-            with open('falkordb/graph_data.json', 'w') as f:
-                json.dump(graph_result, f, indent=2)
-            
-            # Save the queries separately
-            with open('falkordb/graph_queries.txt', 'w') as f:
-                for query in queries:
-                    if isinstance(query, tuple):
-                        query_text, _ = query
-                        f.write(query_text + '\n\n')
-                    else:
-                        f.write(query + '\n\n')
+            # Format the result for UI
+            ui_formatted = self._format_graph_for_ui(graph_result["nodes"], graph_result["edges"])
             
             logger.info(f"📝 Generated ontology graph with {len(data['entities'])} entities and {len(data['relations'])} relations")
-            logger.info("⏱️ Ontology graph generation completed in {:.2f} seconds".format(time.time() - start_time))
             logger.info("=== END ONTOLOGY GRAPH GENERATION ===\n")
             
-            return result
+            return ui_formatted
             
         except Exception as e:
-            logger.error(f"❌ Error in ontology graph generation: {str(e)}")
+            logger.error(f"❌ Error generating ontology graph: {str(e)}")
             logger.error(f"Traceback: {traceback.format_exc()}")
-            return {
-                "data": {"entities": [], "relations": []},
-                "queries": [],
-                "graph": {"nodes": [], "edges": []}
-            } 
+            return {"nodes": [], "edges": []} 

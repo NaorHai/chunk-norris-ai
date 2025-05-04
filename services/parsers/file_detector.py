@@ -107,18 +107,4 @@ class FileDetector:
         if extension in ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.webp']:
             return True
             
-        return False
-
-
-# Example usage
-if __name__ == "__main__":
-    detector = FileDetector()
-    
-    # Example file path
-    test_file = "example.pdf"
-    
-    if os.path.exists(test_file):
-        print(f"File type: {detector.detect_file_type(test_file)}")
-        print(f"Metadata: {detector.get_file_metadata(test_file)}")
-        print(f"Is document: {detector.is_document(test_file)}")
-        print(f"Is image: {detector.is_image(test_file)}") 
+        return False 

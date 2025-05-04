@@ -1,0 +1,62 @@
+
+                CREATE (:Entity {
+                    name: $name,
+                    description: $description,
+                    category: $category
+                })
+            
+
+
+                CREATE (:Entity {
+                    name: $name,
+                    description: $description,
+                    category: $category
+                })
+            
+
+
+                CREATE (:Entity {
+                    name: $name,
+                    description: $description,
+                    category: $category
+                })
+            
+
+
+                CREATE (:Entity {
+                    name: $name,
+                    description: $description,
+                    category: $category
+                })
+            
+
+
+                MATCH (source:Entity {name: $source_name})
+                MATCH (target:Entity {name: $target_name})
+                CREATE (source)-[:provides {
+                    description: 'Harry\'s Bagels provides the order to the customer.',
+                    type: 'provides',
+                    direction: 'forward'
+                }]->(target)
+            
+
+
+                MATCH (source:Entity {name: $source_name})
+                MATCH (target:Entity {name: $target_name})
+                CREATE (source)-[:contains {
+                    description: 'The order contains the item Water.',
+                    type: 'contains',
+                    direction: 'forward'
+                }]->(target)
+            
+
+
+                MATCH (source:Entity {name: $source_name})
+                MATCH (target:Entity {name: $target_name})
+                CREATE (source)-[:associated_with {
+                    description: 'The order is associated with a payment.',
+                    type: 'associated_with',
+                    direction: 'forward'
+                }]->(target)
+            
+

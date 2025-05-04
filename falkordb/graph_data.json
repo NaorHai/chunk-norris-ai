@@ -1,0 +1,72 @@
+{
+  "nodes": [
+    {
+      "id": 0,
+      "title": "Payment",
+      "type": "Payment",
+      "summary": "Details of the payment made for the order.",
+      "labels": [
+        "Entity"
+      ]
+    },
+    {
+      "id": 1,
+      "title": "Water",
+      "type": "Item",
+      "summary": "A beverage item ordered.",
+      "labels": [
+        "Entity"
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Order",
+      "type": "Order",
+      "summary": "Details of the customer's order.",
+      "labels": [
+        "Entity"
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Harry's Bagels",
+      "type": "Store",
+      "summary": "A bagel store located in New York.",
+      "labels": [
+        "Entity"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": 2,
+      "target": 0,
+      "relation": "associated_with",
+      "properties": {
+        "description": "The order is associated with a payment.",
+        "type": "associated_with",
+        "direction": "forward"
+      }
+    },
+    {
+      "source": 2,
+      "target": 1,
+      "relation": "contains",
+      "properties": {
+        "description": "The order contains the item Water.",
+        "type": "contains",
+        "direction": "forward"
+      }
+    },
+    {
+      "source": 3,
+      "target": 2,
+      "relation": "provides",
+      "properties": {
+        "description": "Harry's Bagels provides the order to the customer.",
+        "type": "provides",
+        "direction": "forward"
+      }
+    }
+  ]
+}

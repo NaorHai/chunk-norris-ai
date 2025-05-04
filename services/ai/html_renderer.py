@@ -1,8 +1,12 @@
 import os
 import tempfile
-from PIL import Image, ImageDraw, ImageFont
 from typing import Optional
 
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
 
 class HtmlRenderer:
     """
@@ -56,20 +60,24 @@ class HtmlRenderer:
                     print("wkhtmltoimage command failed, trying Python rendering...")
                     
                     # Fallback to a very basic HTML rendering with PIL
-                    text = "HTML Preview (rendering failed)"
-                    img = Image.new('RGB', (800, 200), color=(255, 255, 255))
-                    try:
-                        draw = ImageDraw.Draw(img)
+                    if PIL_AVAILABLE:
+                        text = "HTML Preview (rendering failed)"
+                        img = Image.new('RGB', (800, 200), color=(255, 255, 255))
                         try:
-                            font = ImageFont.truetype("Arial", 20)
+                            draw = ImageDraw.Draw(img)
+                            try:
+                                font = ImageFont.truetype("Arial", 20)
+                            except:
+                                font = ImageFont.load_default()
+                            draw.text((20, 20), text, fill=(0, 0, 0), font=font)
                         except:
-                            font = ImageFont.load_default()
-                        draw.text((20, 20), text, fill=(0, 0, 0), font=font)
-                    except:
-                        pass  # Can't even draw text, will return blank image
-                    
-                    img.save(output_path)
-                    return output_path
+                            pass  # Can't even draw text, will return blank image
+                        
+                        img.save(output_path)
+                        return output_path
+                    else:
+                        print("PIL not available, cannot create fallback image")
+                        return None
         except Exception as e:
             print(f"Error converting HTML to image: {str(e)}")
             return None 

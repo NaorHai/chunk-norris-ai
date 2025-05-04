@@ -1,0 +1,236 @@
+{
+  "data": {
+    "entities": [
+      {
+        "name": "Harry's Bagels",
+        "description": "A bagel store located in New York.",
+        "category": "Store",
+        "properties": {
+          "address": "520 8th Ave, New York, NY 10018",
+          "phone": "(646) 828-3371"
+        },
+        "label": "Entity",
+        "attributes": {
+          "name": "Entity",
+          "category": "General",
+          "description": "A bagel store located in New York."
+        }
+      },
+      {
+        "name": "Order",
+        "description": "Details of the customer's order.",
+        "category": "Order",
+        "properties": {
+          "order_number": 33,
+          "date": "4/26/25",
+          "time": "08:43:40 AM"
+        },
+        "label": "Entity",
+        "attributes": {
+          "name": "Entity",
+          "category": "General",
+          "description": "Details of the customer's order."
+        }
+      },
+      {
+        "name": "Water",
+        "description": "A beverage item ordered.",
+        "category": "Item",
+        "properties": {
+          "price": 2.38
+        },
+        "label": "Entity",
+        "attributes": {
+          "name": "Entity",
+          "category": "General",
+          "description": "A beverage item ordered."
+        }
+      },
+      {
+        "name": "Payment",
+        "description": "Details of the payment made for the order.",
+        "category": "Payment",
+        "properties": {
+          "total": 2.59,
+          "card_type": "American MasterCard",
+          "card_ending": "1944",
+          "auth_code": 817684
+        },
+        "label": "Entity",
+        "attributes": {
+          "name": "Entity",
+          "category": "General",
+          "description": "Details of the payment made for the order."
+        }
+      }
+    ],
+    "relations": [
+      {
+        "source": "Harry's Bagels",
+        "target": "Order",
+        "type": "provides",
+        "description": "Harry's Bagels provides the order to the customer.",
+        "direction": "forward",
+        "label": "Related",
+        "attributes": {
+          "direction": "unidirectional",
+          "type": "general",
+          "description": "Harry's Bagels provides the order to the customer."
+        }
+      },
+      {
+        "source": "Order",
+        "target": "Water",
+        "type": "contains",
+        "description": "The order contains the item Water.",
+        "direction": "forward",
+        "label": "Related",
+        "attributes": {
+          "direction": "unidirectional",
+          "type": "general",
+          "description": "The order contains the item Water."
+        }
+      },
+      {
+        "source": "Order",
+        "target": "Payment",
+        "type": "associated_with",
+        "description": "The order is associated with a payment.",
+        "direction": "forward",
+        "label": "Related",
+        "attributes": {
+          "direction": "unidirectional",
+          "type": "general",
+          "description": "The order is associated with a payment."
+        }
+      }
+    ]
+  },
+  "queries": [
+    [
+      "\n                CREATE (:Entity {\n                    name: $name,\n                    description: $description,\n                    category: $category\n                })\n            ",
+      {
+        "name": "Harry's Bagels",
+        "description": "A bagel store located in New York.",
+        "category": "Store"
+      }
+    ],
+    [
+      "\n                CREATE (:Entity {\n                    name: $name,\n                    description: $description,\n                    category: $category\n                })\n            ",
+      {
+        "name": "Order",
+        "description": "Details of the customer's order.",
+        "category": "Order"
+      }
+    ],
+    [
+      "\n                CREATE (:Entity {\n                    name: $name,\n                    description: $description,\n                    category: $category\n                })\n            ",
+      {
+        "name": "Water",
+        "description": "A beverage item ordered.",
+        "category": "Item"
+      }
+    ],
+    [
+      "\n                CREATE (:Entity {\n                    name: $name,\n                    description: $description,\n                    category: $category\n                })\n            ",
+      {
+        "name": "Payment",
+        "description": "Details of the payment made for the order.",
+        "category": "Payment"
+      }
+    ],
+    [
+      "\n                MATCH (source:Entity {name: $source_name})\n                MATCH (target:Entity {name: $target_name})\n                CREATE (source)-[:provides {\n                    description: 'Harry\\'s Bagels provides the order to the customer.',\n                    type: 'provides',\n                    direction: 'forward'\n                }]->(target)\n            ",
+      {
+        "source_name": "Harry's Bagels",
+        "target_name": "Order"
+      }
+    ],
+    [
+      "\n                MATCH (source:Entity {name: $source_name})\n                MATCH (target:Entity {name: $target_name})\n                CREATE (source)-[:contains {\n                    description: 'The order contains the item Water.',\n                    type: 'contains',\n                    direction: 'forward'\n                }]->(target)\n            ",
+      {
+        "source_name": "Order",
+        "target_name": "Water"
+      }
+    ],
+    [
+      "\n                MATCH (source:Entity {name: $source_name})\n                MATCH (target:Entity {name: $target_name})\n                CREATE (source)-[:associated_with {\n                    description: 'The order is associated with a payment.',\n                    type: 'associated_with',\n                    direction: 'forward'\n                }]->(target)\n            ",
+      {
+        "source_name": "Order",
+        "target_name": "Payment"
+      }
+    ]
+  ],
+  "graph": {
+    "nodes": [
+      {
+        "id": 0,
+        "title": "Payment",
+        "type": "Payment",
+        "summary": "Details of the payment made for the order.",
+        "labels": [
+          "Entity"
+        ]
+      },
+      {
+        "id": 1,
+        "title": "Water",
+        "type": "Item",
+        "summary": "A beverage item ordered.",
+        "labels": [
+          "Entity"
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Order",
+        "type": "Order",
+        "summary": "Details of the customer's order.",
+        "labels": [
+          "Entity"
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Harry's Bagels",
+        "type": "Store",
+        "summary": "A bagel store located in New York.",
+        "labels": [
+          "Entity"
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "source": 2,
+        "target": 0,
+        "relation": "associated_with",
+        "properties": {
+          "description": "The order is associated with a payment.",
+          "type": "associated_with",
+          "direction": "forward"
+        }
+      },
+      {
+        "source": 2,
+        "target": 1,
+        "relation": "contains",
+        "properties": {
+          "description": "The order contains the item Water.",
+          "type": "contains",
+          "direction": "forward"
+        }
+      },
+      {
+        "source": 3,
+        "target": 2,
+        "relation": "provides",
+        "properties": {
+          "description": "Harry's Bagels provides the order to the customer.",
+          "type": "provides",
+          "direction": "forward"
+        }
+      }
+    ]
+  }
+}

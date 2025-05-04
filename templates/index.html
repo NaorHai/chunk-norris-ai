@@ -221,8 +221,11 @@
             padding: 10px;
             border: 1px solid #dee2e6;
             border-radius: 0.25rem;
-            height: 400px;
+            height: 1000px;
             overflow: auto;
+            iframe {
+                height: 800px;
+            }
         }
         .file-icon {
             font-size: 48px;
@@ -616,6 +619,18 @@
                                 <p class="text-sm text-gray-500 mt-1 ml-7 align-left">
                                     Create an interactive visualization of the document's structure and relationships. Explore connections between concepts, sections, and entities.
                                 </p>
+                                
+                                <!-- Ontology Graph Toggle -->
+                                <div class="flex items-center space-x-2 mt-3">
+                                    <input type="checkbox" id="ontology-graph-toggle" class="w-5 h-5 text-primary-600 rounded border-gray-300 focus:ring-primary-500">
+                                    <label for="ontology-graph-toggle" class="text-gray-700 font-medium">
+                                        Generate Ontology Graph
+                                        <span class="inline-flex ml-2 bg-green-500 text-white rounded-full px-2 text-xs font-bold">NEW</span>
+                                    </label>
+                                </div>
+                                <p class="text-sm text-gray-500 mt-1 ml-7 align-left">
+                                    Create an ontology graph using FalkorDB's GraphRAG-SDK. Visualize entities, properties, and relationships in the document content.
+                                </p>
                             </div>
                         </div>
                     </form>
@@ -703,6 +718,36 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Ontology Graph Panel (initially hidden) -->
+        <div id="ontology-graph-panel" class="mt-6 bg-white rounded-xl shadow-card p-5 overflow-hidden border border-gray-100 hidden">
+            <div class="border-b border-gray-100 pb-3 mb-5 flex justify-between items-center">
+                <h3 class="text-xl font-semibold text-gray-800">Ontology Graph</h3>
+                <div class="flex items-center">
+                    <button id="ontology-zoom-in" class="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors mr-2" title="Zoom In">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
+                    <button id="ontology-zoom-out" class="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors mr-2" title="Zoom Out">
+                        <i class="fas fa-search-minus"></i>
+                    </button>
+                    <button id="ontology-center-graph" class="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors" title="Center Graph">
+                        <i class="fas fa-compress-arrows-alt"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="ontology-graph-container" class="h-[600px] bg-[#1a1a2e] rounded-lg relative">
+                <div class="flex flex-col justify-center items-center h-full">
+                    <div class="w-16 h-16 bg-green-700 rounded-full flex items-center justify-center mb-4">
+                        <i class="fas fa-sitemap text-white text-2xl"></i>
+                    </div>
+                    <p class="text-white text-lg font-medium mb-2">Ontology Graph Visualization</p>
+                    <p class="text-gray-400 text-center max-w-md px-4">
+                        Process a document and enable the Ontology Graph feature to visualize entities, properties, 
+                        and relationships using FalkorDB's GraphRAG-SDK.
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -722,6 +767,8 @@
         const chuckNorrisLoader = document.getElementById('chuck-norris-loader');
         const copyMarkdownBtn = document.getElementById('copy-markdown');
         const showRenderedToggle = document.getElementById('show-rendered');
+        const memoryGraphToggle = document.getElementById('memory-graph-toggle');
+        const ontologyGraphToggle = document.getElementById('ontology-graph-toggle');
         
         // Current PDF state
         let currentPdfDoc = null;
@@ -872,32 +919,14 @@
             fileContent.innerHTML = '<p class="text-gray-500">Processing file...</p>';
             markdownContent.innerHTML = '<p class="text-gray-500">Converting to markdown...</p>';
             
-            // Display file preview based on file type
-            displayFilePreview(file);
+            // Preview the file based on its type
+            previewFile(file);
             
-            // Create FormData and upload
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            // Get the selected processing mode
-            const processingMode = document.querySelector('input[name="processing-mode"]:checked').value;
-            console.log('Selected processing mode:', processingMode);
-            
-            // Set flags based on the selected mode
-            let useAiRefinement = false;
-            let useChuckNorrisAi = false;
-            
-            if (processingMode === 'ai-refinement') {
-                useAiRefinement = true;
-                useChuckNorrisAi = false;
-            } else if (processingMode === 'chuck-norris-ai' || processingMode === 'chuck-norris-ai-pro') {
-                useAiRefinement = false;
-                useChuckNorrisAi = true;
-            }
-            
-            // Get memory graph toggle state
-            const memoryGraphToggle = document.getElementById('memory-graph-toggle');
+            // Get the processing mode
+            const useAiRefinement = document.getElementById('use-ai-refinement').checked;
+            const useChuckNorrisAi = document.getElementById('use-chuck-norris-ai').checked;
             const generateMemoryGraph = memoryGraphToggle && memoryGraphToggle.checked;
+            const generateOntologyGraph = ontologyGraphToggle && ontologyGraphToggle.checked;
             
             // After file upload starts, disable the memory graph toggle
             if (memoryGraphToggle) {
@@ -909,14 +938,28 @@
                 }
             }
             
+            // After file upload starts, disable the ontology graph toggle
+            if (ontologyGraphToggle) {
+                ontologyGraphToggle.disabled = true;
+                // Add a visual cue that it's disabled
+                const ontologyGraphLabel = document.querySelector('label[for="ontology-graph-toggle"]');
+                if (ontologyGraphLabel) {
+                    ontologyGraphLabel.classList.add('opacity-60');
+                }
+            }
+            
             console.log('Use AI refinement:', useAiRefinement);
             console.log('Use Chuck Norris AI:', useChuckNorrisAi);
             console.log('Generate memory graph:', generateMemoryGraph);
+            console.log('Generate ontology graph:', generateOntologyGraph);
             
             // Add parameters to the form data
+            const formData = new FormData();
+            formData.append('file', file);
             formData.append('use_ai_refinement', useAiRefinement);
             formData.append('use_chuck_norris_ai', useChuckNorrisAi);
             formData.append('generate_memory_graph', generateMemoryGraph);
+            formData.append('generate_ontology_graph', generateOntologyGraph);
             
             fetch('/upload', {
                 method: 'POST',
@@ -942,23 +985,39 @@
                     displayMarkdown(data.markdown);
                     
                     // Handle memory graph if enabled and data is present
-                    if (generateMemoryGraph) {
+                    if (generateMemoryGraph && data.memory_graph && data.memory_graph.nodes && data.memory_graph.nodes.length > 0) {
                         // Show memory graph panel
                         const memoryGraphPanel = document.getElementById('memory-graph-panel');
+                        memoryGraphPanel.classList.remove('hidden');
                         
-                        // Only show panel and render graph if we have memory graph data
-                        if (data.memory_graph && data.memory_graph.nodes && data.memory_graph.nodes.length > 0) {
-                            memoryGraphPanel.classList.remove('hidden');
-                            
-                            // Process the memory graph data
-                            const graphData = processGraphData(data.memory_graph);
-                            
-                            // Render the memory graph
-                            renderMemoryGraph(graphData);
-                            
-                            // Scroll to the memory graph after a short delay
+                        // Process the memory graph data
+                        const graphData = processGraphData(data.memory_graph);
+                        
+                        // Render the memory graph
+                        renderMemoryGraph(graphData);
+                        
+                        // Scroll to the memory graph after a short delay
+                        setTimeout(() => {
+                            memoryGraphPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 500);
+                    }
+                    
+                    // Handle ontology graph if enabled and data is present
+                    if (generateOntologyGraph && data.ontology_graph && data.ontology_graph.nodes && data.ontology_graph.nodes.length > 0) {
+                        // Show ontology graph panel
+                        const ontologyGraphPanel = document.getElementById('ontology-graph-panel');
+                        ontologyGraphPanel.classList.remove('hidden');
+                        
+                        // Process the ontology graph data
+                        const graphData = processGraphData(data.ontology_graph);
+                        
+                        // Render the ontology graph
+                        renderOntologyGraph(graphData);
+                        
+                        // Scroll to the ontology graph after a short delay if memory graph is not present
+                        if (!generateMemoryGraph || !data.memory_graph || !data.memory_graph.nodes || data.memory_graph.nodes.length === 0) {
                             setTimeout(() => {
-                                memoryGraphPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                ontologyGraphPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
                             }, 500);
                         }
                     }
@@ -1020,439 +1079,21 @@
             return typeMap[extension] || 'application/octet-stream';
         }
 
-        // Add function to update zoom level display
-        function updateZoomLevel() {
-            const zoomLevelElement = document.getElementById('zoom-level');
-            if (zoomLevelElement) {
-                zoomLevelElement.textContent = `${Math.round(currentScale * 100)}%`;
-            }
-        }
-
-        // Function to render a PDF page
-        function renderPage(num) {
-            if (!currentPdfDoc) return;
-            
-            currentPdfDoc.getPage(num).then(page => {
-                const canvas = document.getElementById('pdf-viewer');
-                const ctx = canvas.getContext('2d');
-                
-                // Set viewport
-                const viewport = page.getViewport({ scale: currentScale });
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-                
-                // Render PDF page
-                const renderContext = {
-                    canvasContext: ctx,
-                    viewport: viewport
-                };
-                
-                page.render(renderContext);
-                
-                // Update page info
-                document.getElementById('page-info').textContent = `Page: ${num} / ${totalPages}`;
-            });
-        }
-
-        function displayFilePreview(file) {
-            const fileType = file.type || getFileTypeFromName(file.name);
-            let fileIcon = '';
-            let bgColor = '';
-            let iconColor = '';
-            let borderColor = '';
-            
-            // Reset the original file tools
-            document.getElementById('original-file-tools').innerHTML = '';
-            
-            // Determine file icon based on type
-            if (fileType.includes('pdf')) {
-                fileIcon = '<i class="fas fa-file-pdf"></i>';
-                bgColor = 'bg-red-50';
-                iconColor = 'text-red-500';
-                borderColor = 'border-red-100';
-            } else if (fileType.includes('word') || file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
-                fileIcon = '<i class="fas fa-file-word"></i>';
-                bgColor = 'bg-primary-50';
-                iconColor = 'text-primary-500';
-                borderColor = 'border-primary-100';
-            } else if (fileType.includes('rtf') || file.name.endsWith('.rtf')) {
-                fileIcon = '<i class="fas fa-file-alt"></i>';
-                bgColor = 'bg-primary-50';
-                iconColor = 'text-primary-400';
-                borderColor = 'border-primary-100';
-            } else if (fileType.includes('image')) {
-                fileIcon = '<i class="fas fa-file-image"></i>';
-                bgColor = 'bg-success-50';
-                iconColor = 'text-success-500';
-                borderColor = 'border-success-100';
-            } else {
-                fileIcon = '<i class="fas fa-file-alt"></i>';
-                bgColor = 'bg-gray-50';
-                iconColor = 'text-gray-500';
-                borderColor = 'border-gray-100';
-            }
-            
-            // Create file info card
-            const fileInfoHTML = `
-                <div class="rounded-lg shadow-card p-5 mb-5 text-center bg-white border ${borderColor}">
-                    <div class="w-20 h-20 mx-auto mb-3 flex items-center justify-center text-3xl rounded-full ${bgColor}">
-                        <span class="${iconColor}">${fileIcon}</span>
-                    </div>
-                    <h4 class="text-lg font-semibold mb-1">${file.name}</h4>
-                    <span class="inline-block px-3 py-1 text-xs rounded-full bg-gray-100 text-gray-700 mb-2">${fileType || 'Unknown'}</span>
-                    <p class="text-sm text-gray-600">Size: ${formatFileSize(file.size)}</p>
-                </div>
-            `;
-            
-            // Create content preview based on file type
-            let contentPreviewHTML = '';
-            
-            if (fileType.includes('image')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const imgPreview = `
-                        <div class="mt-4">
-                            <img src="${e.target.result}" alt="${file.name}" class="max-w-full rounded-lg shadow-sm mx-auto">
-                        </div>
-                    `;
-                    fileContent.innerHTML = fileInfoHTML + imgPreview;
-                };
-                reader.readAsDataURL(file);
-                return;
-            } else if (fileType.includes('text') || fileType.includes('plain')) {
-                // For text files, read and display content
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const textPreview = `
-                        <div class="mt-4">
-                            <div class="bg-gray-50 font-mono text-sm p-4 rounded-lg border border-gray-200 overflow-auto h-80">${e.target.result}</div>
-                        </div>
-                    `;
-                    fileContent.innerHTML = fileInfoHTML + textPreview;
-                };
-                reader.readAsText(file);
-                return;
-            } else if (fileType.includes('pdf')) {
-                // For PDFs, use PDF.js to render preview
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const pdfData = new Uint8Array(e.target.result);
-                    
-                    // Add zoom controls to the original file tools
-                    document.getElementById('original-file-tools').innerHTML = `
-                        <button id="download-pdf" class="text-sm bg-primary-50 hover:bg-primary-100 text-primary-700 py-1.5 px-4 rounded-full flex items-center transition-colors">
-                            <i class="fas fa-download mr-1.5"></i> Download
-                        </button>
-                    `;
-                    
-                    // Create PDF viewer container
-                    contentPreviewHTML = `
-                        <div class="mt-4 bg-white rounded-lg border border-gray-100 overflow-hidden">
-                            <div class="flex items-center justify-center space-x-2 py-3 px-4 bg-gray-50 border-b border-gray-100">
-                                <button id="prev-page" class="bg-primary-600 hover:bg-primary-700 text-white py-1.5 px-4 rounded-full text-sm flex items-center transition-colors">
-                                    <i class="fas fa-chevron-left mr-1.5"></i> Previous
-                                </button>
-                                <span id="page-info" class="mx-3 text-gray-700">Page: 1 / ?</span>
-                                <button id="next-page" class="bg-primary-600 hover:bg-primary-700 text-white py-1.5 px-4 rounded-full text-sm flex items-center transition-colors">
-                                    Next <i class="fas fa-chevron-right ml-1.5"></i>
-                                </button>
-                                <div class="ml-4 flex items-center border-l border-gray-200 pl-3">
-                                    <button id="zoom-out" class="text-primary-600 hover:text-primary-800 px-1"><i class="fas fa-search-minus"></i></button>
-                                    <span id="zoom-level" class="mx-2 text-sm text-gray-700">150%</span>
-                                    <button id="zoom-in" class="text-primary-600 hover:text-primary-800 px-1"><i class="fas fa-search-plus"></i></button>
-                                </div>
-                            </div>
-                            <canvas id="pdf-viewer" class="w-full border-gray-100"></canvas>
-                        </div>
-                    `;
-                    
-                    fileContent.innerHTML = fileInfoHTML + contentPreviewHTML;
-                    
-                    // Set up download button
-                    document.getElementById('download-pdf').addEventListener('click', () => {
-                        const blob = new Blob([e.target.result], { type: 'application/pdf' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = file.name;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                    });
-                    
-                    // Load the PDF
-                    pdfjsLib.getDocument({ data: pdfData }).promise.then(pdfDoc => {
-                        currentPdfDoc = pdfDoc;
-                        totalPages = pdfDoc.numPages;
-                        document.getElementById('page-info').textContent = `Page: ${currentPage} / ${totalPages}`;
-                        renderPage(currentPage);
-                        
-                        // Add event listeners for navigation
-                        document.getElementById('prev-page').addEventListener('click', () => {
-                            if (currentPage > 1) {
-                                currentPage--;
-                                renderPage(currentPage);
-                            }
-                        });
-                        
-                        document.getElementById('next-page').addEventListener('click', () => {
-                            if (currentPage < totalPages) {
-                                currentPage++;
-                                renderPage(currentPage);
-                            }
-                        });
-                        
-                        // Add zoom controls
-                        document.getElementById('zoom-in').addEventListener('click', () => {
-                            if (currentScale < 3) {
-                                currentScale += 0.25;
-                                renderPage(currentPage);
-                                updateZoomLevel();
-                            }
-                        });
-                        
-                        document.getElementById('zoom-out').addEventListener('click', () => {
-                            if (currentScale > 0.5) {
-                                currentScale -= 0.25;
-                                renderPage(currentPage);
-                                updateZoomLevel();
-                            }
-                        });
-                    }).catch(error => {
-                        console.error('Error loading PDF:', error);
-                        fileContent.innerHTML = fileInfoHTML + `
-                            <div class="mt-4">
-                                <div class="bg-red-50 text-red-600 p-4 rounded-lg border border-red-100">
-                                    <p class="flex items-center"><i class="fas fa-exclamation-circle mr-2"></i> Error loading PDF preview</p>
-                                    <p class="text-sm mt-2">${error.message}</p>
-                                </div>
-                            </div>
-                        `;
-                    });
-                };
-                reader.readAsArrayBuffer(file);
-                return;
-            } else if (fileType.includes('word') || file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
-                contentPreviewHTML = `
-                    <div class="mt-4">
-                        <div class="bg-primary-50 p-5 rounded-lg border border-primary-100 text-center text-gray-700">
-                            <div class="w-16 h-16 mx-auto mb-3 flex items-center justify-center text-3xl rounded-full bg-white text-primary-500 border border-primary-100">
-                                <i class="fas fa-file-word"></i>
-                            </div>
-                            <p>DOCX content preview not available in browser.</p>
-                            <p class="mt-2 text-sm text-gray-500">Markdown conversion will be displayed on the right panel.</p>
-                        </div>
-                    </div>
-                `;
-            } else if (fileType.includes('rtf') || file.name.endsWith('.rtf')) {
-                contentPreviewHTML = `
-                    <div class="mt-4">
-                        <div class="bg-primary-50 p-5 rounded-lg border border-primary-100 text-center text-gray-700">
-                            <div class="w-16 h-16 mx-auto mb-3 flex items-center justify-center text-3xl rounded-full bg-white text-primary-400 border border-primary-100">
-                                <i class="fas fa-file-alt"></i>
-                            </div>
-                            <p>RTF content preview not available in browser.</p>
-                            <p class="mt-2 text-sm text-gray-500">Markdown conversion will be displayed on the right panel.</p>
-                        </div>
-                    </div>
-                `;
-            } else {
-                contentPreviewHTML = `
-                    <div class="mt-4">
-                        <div class="bg-gray-50 p-5 rounded-lg border border-gray-200 text-center text-gray-700">
-                            <div class="w-16 h-16 mx-auto mb-3 flex items-center justify-center text-3xl rounded-full bg-white text-gray-400 border border-gray-200">
-                                <i class="fas fa-file"></i>
-                            </div>
-                            <p>No preview available for this file type.</p>
-                            <p class="mt-2 text-sm text-gray-500">Markdown conversion will be displayed on the right panel.</p>
-                        </div>
-                    </div>
-                `;
-            }
-
-            fileContent.innerHTML = fileInfoHTML + contentPreviewHTML;
-        }
-
-        // Process upload response and update markdown
-        function processUploadResponse(response) {
-            uploadInProgress = false;
-            
-            // Hide both loaders
-            document.getElementById('loader').classList.add('hidden');
-            document.getElementById('chuck-norris-loader').style.display = 'none';
-            
-            // Enable drop area
-            enableDropArea();
-            
-            if (response.error) {
-                // Handle error
-                Swal.fire({
-                    title: 'Error',
-                    text: response.error,
-                    icon: 'error',
-                    confirmButtonText: 'OK',
-                    confirmButtonColor: '#0077ff'
-                });
-                return;
-            }
-            
-            // Show success message using SweetAlert2
-            Swal.fire({
-                title: 'Success!',
-                text: 'File processed successfully',
-                icon: 'success',
-                confirmButtonText: 'View Results',
-                confirmButtonColor: '#0077ff',
-                timer: 2000,
-                timerProgressBar: true,
-                showConfirmButton: false
-            });
-            
-            // Update markdown content
-            document.getElementById('markdown-content').innerHTML = marked.parse(response.markdown || '');
-            
-            // Apply syntax highlighting to code blocks
-            document.querySelectorAll('pre code').forEach((block) => {
-                hljs.highlightElement(block);
-            });
-            
-            // Show split view
-            document.querySelector('.split-view').classList.remove('hidden');
-            
-            // Update file preview based on type
-            const filePreview = document.getElementById('file-content');
-            const fileName = response.filename;
-            const fileType = getFileTypeFromName(fileName);
-            
-            // Clear any previous content
-            filePreview.innerHTML = '';
-            
-            // Update original file view based on file type or HTML preview
-            if (response.html_preview && response.is_rtf) {
-                // For RTF files with HTML preview, show in iframe
-                const iframe = document.createElement('iframe');
-                iframe.src = response.html_preview;
-                iframe.className = 'w-full h-full border-0 min-h-[500px]';
-                iframe.style.height = 'calc(100vh - 300px)';
-                filePreview.appendChild(iframe);
-            } else if (response.imagePath) {
-                // For image files
-                const img = document.createElement('img');
-                img.src = response.imagePath;
-                img.alt = fileName;
-                img.className = 'max-w-full mx-auto rounded shadow-sm';
-                filePreview.appendChild(img);
-            } else {
-                // For non-image files without HTML preview
-                const placeholder = document.createElement('div');
-                placeholder.className = 'bg-gray-50 p-5 rounded-lg border border-gray-200 text-center';
-                
-                let fileIcon = '';
-                let iconClass = '';
-                
-                if (fileType.includes('pdf')) {
-                    fileIcon = 'file-pdf';
-                    iconClass = 'text-red-500';
-                } else if (fileType.includes('word') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
-                    fileIcon = 'file-word';
-                    iconClass = 'text-blue-500';
-                } else if (fileType.includes('rtf') || fileName.endsWith('.rtf')) {
-                    fileIcon = 'file-alt';
-                    iconClass = 'text-orange-500';
-                } else {
-                    fileIcon = 'file-alt';
-                    iconClass = 'text-gray-500';
-                }
-                
-                placeholder.innerHTML = `
-                    <div class="w-20 h-20 mx-auto mb-4 flex items-center justify-center text-4xl rounded-full bg-white ${iconClass} border border-gray-200">
-                        <i class="fas fa-${fileIcon}"></i>
-                    </div>
-                    <h4 class="text-lg font-semibold mb-2">${fileName}</h4>
-                    <p class="text-gray-600">Original file content preview not available</p>
-                    <p class="mt-2 text-sm text-gray-500">Markdown conversion is displayed on the right panel</p>
-                `;
-                
-                filePreview.appendChild(placeholder);
-            }
-        }
-
-        // Handle file upload
-        function uploadFile(file) {
-            if (!file) return;
-            
-            // Show loading spinner
-            if (document.getElementById('use-chuck-norris-ai').checked || document.getElementById('use-chuck-norris-ai-pro').checked) {
-                document.getElementById('chuck-norris-loader').style.display = 'block';
-            } else {
-                document.getElementById('loader').classList.remove('hidden');
-            }
-            
-            // Disable drop area during upload
-            disableDropArea();
-            
-            // Prepare form data
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            // Set processing options based on radio selection
-            if (document.getElementById('use-chuck-norris-ai-pro').checked) {
-                // Show Chuck Norris Pro popup instead of actually using it
-                showProPopup();
-                formData.append('use_chuck_norris_ai', 'true');
-                formData.append('use_ai_refinement', 'false');
-            } else if (document.getElementById('use-chuck-norris-ai').checked) {
-                formData.append('use_chuck_norris_ai', 'true');
-                formData.append('use_ai_refinement', 'false');
-            } else {
-                formData.append('use_chuck_norris_ai', 'false');
-                formData.append('use_ai_refinement', 'true');
-            }
-            
-            // Track upload status
-            uploadInProgress = true;
-            
-            // Make API request
-            fetch('/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                processUploadResponse(data);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                uploadInProgress = false;
-                document.getElementById('loader').classList.add('hidden');
-                document.getElementById('chuck-norris-loader').style.display = 'none';
-                
-                enableDropArea();
-                
-                Swal.fire({
-                    title: 'Error',
-                    text: 'Failed to process file. Please try again.',
-                    icon: 'error',
-                    confirmButtonText: 'OK',
-                    confirmButtonColor: '#0077ff'
-                });
-            });
-        }
-
-        // Function to generate and visualize the memory graph
-        function generateMemoryGraph(markdownContent) {
-            // Show a better loading state with animation and clear message
-            document.getElementById('memory-graph-container').innerHTML = `
+        // Add function to generate ontology graph from markdown content via the API
+        function generateOntologyGraph(markdownContent) {
+            // Show loading message
+            document.getElementById('ontology-graph-container').innerHTML = `
                 <div class="flex flex-col justify-center items-center h-full">
-                    <div class="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                    <p class="text-white text-lg font-medium mb-2">Analyzing Document Structure</p>
-                    <p class="text-gray-400 text-center max-w-md px-4">Creating an interactive visualization of the document's structure and relationships...</p>
+                    <div class="w-16 h-16 bg-green-700 rounded-full flex items-center justify-center mb-4 animate-pulse">
+                        <i class="fas fa-sitemap text-white text-2xl"></i>
+                    </div>
+                    <p class="text-white text-lg font-medium mb-2">Generating Ontology Graph...</p>
+                    <p class="text-gray-400 text-center max-w-md px-4">Creating an interactive visualization of entities, properties, and relationships in the document content...</p>
                 </div>
             `;
             
-            // Call the backend API to generate the memory graph
-            fetch('/generate_memory_graph', {
+            // Call the backend API to generate the ontology graph
+            fetch('/generate_ontology_graph', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1468,332 +1109,481 @@
                 return response.json();
             })
             .then(data => {
-                if (data.success && data.memory_graph && 
-                    data.memory_graph.nodes && data.memory_graph.nodes.length > 0) {
+                if (data.success && data.ontology_graph && 
+                    data.ontology_graph.nodes && data.ontology_graph.nodes.length > 0) {
                     // Clear the container
-                    document.getElementById('memory-graph-container').innerHTML = '';
+                    document.getElementById('ontology-graph-container').innerHTML = '';
                     
-                    // Process the memory graph data
-                    const graphData = processGraphData(data.memory_graph);
+                    // Process the ontology graph data
+                    const graphData = processGraphData(data.ontology_graph);
                     
-                    // Render the memory graph
-                    renderMemoryGraph(graphData);
+                    // Render the ontology graph
+                    renderOntologyGraph(graphData);
                 } else {
                     // Show a more informative message when no meaningful graph could be generated
-                    document.getElementById('memory-graph-container').innerHTML = `
+                    document.getElementById('ontology-graph-container').innerHTML = `
                         <div class="flex flex-col justify-center items-center h-full">
                             <div class="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mb-4">
                                 <i class="fas fa-info-circle text-white text-2xl"></i>
                             </div>
-                            <p class="text-white text-lg font-medium mb-2">No Graph Structure Detected</p>
+                            <p class="text-white text-lg font-medium mb-2">No Ontology Structure Detected</p>
                             <p class="text-gray-400 text-center max-w-md px-4">
-                                The document doesn't contain enough structured relationships to generate a meaningful graph.
-                                Try a document with more sections and logical connections.
+                                The document doesn't contain enough structured entities to generate a meaningful ontology graph.
+                                Try a document with more entities and defined relationships.
                             </p>
                         </div>
                     `;
                 }
             })
             .catch(error => {
-                console.error('Error generating memory graph:', error);
+                console.error('Error generating ontology graph:', error);
                 // Show a user-friendly error with retry option
-                document.getElementById('memory-graph-container').innerHTML = `
+                document.getElementById('ontology-graph-container').innerHTML = `
                     <div class="flex flex-col justify-center items-center h-full">
                         <div class="w-16 h-16 bg-red-800 rounded-full flex items-center justify-center mb-4">
                             <i class="fas fa-exclamation-triangle text-white text-2xl"></i>
                         </div>
-                        <p class="text-white text-lg font-medium mb-2">Error Generating Memory Graph</p>
+                        <p class="text-white text-lg font-medium mb-2">Error Generating Ontology Graph</p>
                         <p class="text-gray-400 text-center max-w-md px-4 mb-4">
-                            We encountered a problem while analyzing the document structure. 
+                            We encountered a problem while analyzing the document entities. 
                             The server might be busy or the document is too complex.
                         </p>
-                        <button id="retry-graph" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md">
+                        <button id="retry-ontology-graph" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
                             <i class="fas fa-redo mr-2"></i> Try Again
                         </button>
                     </div>
                 `;
                 
                 // Add event listener to the retry button
-                document.getElementById('retry-graph')?.addEventListener('click', () => {
-                    generateMemoryGraph(markdownContent);
+                document.getElementById('retry-ontology-graph')?.addEventListener('click', () => {
+                    generateOntologyGraph(markdownContent);
                 });
             });
         }
 
-        // Process the graph data to enhance visualization
-        function processGraphData(memoryGraph) {
-            const nodeTypes = {
-                'Section': '#4285F4',
-                'Concept': '#EA4335',
-                'Entity': '#FBBC05',
-                'Process': '#34A853'
-            };
+        // Render the ontology graph using Force Graph
+        function renderOntologyGraph(graphData) {
+            const container = document.getElementById('ontology-graph-container');
+            const width = container.clientWidth;
+            const height = 600;
             
-            // Enhance nodes with visual properties
-            const nodes = memoryGraph.nodes.map(node => {
-                return {
-                    ...node,
-                    color: nodeTypes[node.type] || '#9C27B0', // Default purple for unknown types
-                    size: node.type === 'Section' ? 20 : 15,
-                    // Use title as label and add tooltip
-                    label: node.title,
-                    tooltip: node.summary,
-                    // Store connections for display in info panel
-                    connections: []
-                };
-            });
+            // Clear any existing graph
+            container.innerHTML = '';
             
-            // Process edges and add connection info to nodes
-            const edges = memoryGraph.edges.map(edge => {
-                // Find source and target nodes
-                const source = nodes.find(node => node.id === edge.source);
-                const target = nodes.find(node => node.id === edge.target);
-                
-                // Add connection info to nodes
-                if (source && target) {
-                    source.connections.push({
-                        node: target,
-                        relation: edge.relation,
-                        direction: 'outgoing'
-                    });
-                    
-                    target.connections.push({
-                        node: source,
-                        relation: edge.relation,
-                        direction: 'incoming'
-                    });
-                }
-                
-                return {
-                    ...edge,
-                    // Set edge colors based on relation type
-                    color: getEdgeColor(edge.relation)
-                };
-            });
+            // Create SVG container
+            const svg = d3.select(container)
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height);
             
-            return { nodes, links: edges };
-        }
-
-        // Get edge color based on relation type
-        function getEdgeColor(relation) {
-            const relationColors = {
-                'uses': '#1E88E5',
-                'depends_on': '#D81B60',
-                'is_part_of': '#8E24AA',
-                'contains': '#43A047',
-                'references': '#F57C00'
-            };
+            // Create simulation
+            const simulation = d3.forceSimulation(graphData.nodes)
+                .force('link', d3.forceLink(graphData.links).id(d => d.id).distance(100))
+                .force('charge', d3.forceManyBody().strength(-300))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(50));
             
-            // Determine the color based on relation
-            let color = '#757575'; // Default gray
+            // Create links
+            const link = svg.append('g')
+                .selectAll('line')
+                .data(graphData.links)
+                .enter()
+                .append('line')
+                .attr('stroke', '#fff')
+                .attr('stroke-opacity', 0.8)
+                .attr('stroke-width', 2);
             
-            Object.entries(relationColors).forEach(([key, value]) => {
-                if (relation.includes(key) || relation.replace(/_/g, ' ').includes(key.replace(/_/g, ' '))) {
-                    color = value;
-                }
-            });
-            
-            return color;
-        }
-
-        // Render the memory graph using Force Graph
-        function renderMemoryGraph(graphData) {
-            const graphContainer = document.getElementById('memory-graph-container');
-            const nodeInfoPanel = document.getElementById('node-info-panel');
-            const nodeInfoTitle = document.getElementById('node-info-title');
-            const nodeInfoType = document.getElementById('node-info-type');
-            const nodeInfoSummary = document.getElementById('node-info-summary');
-            const nodeConnectionsList = document.getElementById('node-connections-list');
-            
-            // Initialize the graph
-            let graphInstance = ForceGraph()
-                .graphData(graphData)
-                .backgroundColor('#1a1a2e')
-                .nodeId('id')
-                .nodeLabel('label')
-                .nodeColor('color')
-                .nodeVal('size')
-                // Adjust spacing between nodes using more moderate values
-                .d3AlphaDecay(0.02) // Slightly faster simulation settling
-                .d3VelocityDecay(0.2) // Better stabilization
-                // Use moderate link distance and charge values that don't harm the view
-                .d3Force('link', d3.forceLink().distance(80).strength(0.4))
-                // Reduce repulsive force for a more compact view
-                .d3Force('charge', d3.forceManyBody().strength(-150))
-                // Add a center force to keep the graph centered
-                .d3Force('center', d3.forceCenter())
-                .linkSource('source')
-                .linkTarget('target')
-                .linkColor('color')
-                .linkDirectionalArrowLength(6)
-                .linkDirectionalArrowRelPos(1)
-                .linkDirectionalParticles(2)
-                .linkDirectionalParticleWidth(2)
-                .linkWidth(1.5)
-                .nodeCanvasObject((node, ctx, globalScale) => {
-                    // Node circle
-                    ctx.beginPath();
-                    ctx.arc(node.x, node.y, node.size, 0, 2 * Math.PI);
-                    ctx.fillStyle = node.color;
-                    ctx.fill();
-                    
-                    // Node border
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 0.5;
-                    ctx.stroke();
-                    
-                    // Node label if zoomed in
-                    if (globalScale > 0.8) {
-                        const fontSize = 12 / globalScale;
-                        ctx.font = `${fontSize}px Arial`;
-                        ctx.fillStyle = 'white';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(node.label, node.x, node.y + node.size + fontSize);
+            // Create nodes
+            const node = svg.append('g')
+                .selectAll('circle')
+                .data(graphData.nodes)
+                .enter()
+                .append('circle')
+                .attr('r', 10)
+                .attr('fill', d => {
+                    switch(d.type) {
+                        case 'Migration': return '#2196F3';
+                        case 'CloudEnvironment': return '#4CAF50';
+                        case 'Application': return '#FFC107';
+                        case 'Data': return '#9C27B0';
+                        case 'Practice': return '#607D8B';
+                        default: return '#999';
                     }
                 })
-                .onNodeClick(node => {
-                    // Show node info panel
-                    nodeInfoTitle.textContent = node.title;
-                    nodeInfoType.textContent = node.type;
-                    nodeInfoSummary.textContent = node.summary;
-                    
-                    // Clear connections list
-                    nodeConnectionsList.innerHTML = '';
-                    
-                    // Add connections
-                    if (node.connections && node.connections.length > 0) {
-                        node.connections.forEach(conn => {
-                            const li = document.createElement('li');
-                            li.className = 'mb-1';
-                            
-                            const direction = conn.direction === 'outgoing' 
-                                ? `<span class="text-blue-300">${node.title}</span> → <span class="text-yellow-300">${conn.node.title}</span>` 
-                                : `<span class="text-yellow-300">${conn.node.title}</span> → <span class="text-blue-300">${node.title}</span>`;
-                            
-                            li.innerHTML = `${direction} <span class="text-gray-400">(${conn.relation})</span>`;
-                            nodeConnectionsList.appendChild(li);
-                        });
-                    } else {
-                        const li = document.createElement('li');
-                        li.textContent = 'No connections';
-                        nodeConnectionsList.appendChild(li);
-                    }
-                    
-                    // Show the panel
-                    nodeInfoPanel.classList.add('visible');
-                    
-                    // Highlight node and its connections
-                    graphInstance
-                        .nodeColor(n => n === node ? '#ffffff' : n.color)
-                        .linkWidth(link => link.source === node.id || link.target === node.id ? 3 : 1.5)
-                        .linkDirectionalParticles(link => link.source === node.id || link.target === node.id ? 5 : 0);
-                    
-                    // Center on node with animation
-                    graphInstance.centerAt(node.x, node.y, 1000);
-                    graphInstance.zoom(1.5, 1000);
-                })
-                .onBackgroundClick(() => {
-                    // Hide node info panel
-                    nodeInfoPanel.classList.remove('visible');
-                    
-                    // Reset node and link styles
-                    graphInstance
-                        .nodeColor('color')
-                        .linkWidth(1.5)
-                        .linkDirectionalParticles(2);
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+            
+            // Add labels
+            const label = svg.append('g')
+                .selectAll('text')
+                .data(graphData.nodes)
+                .enter()
+                .append('text')
+                .text(d => d.name)
+                .attr('font-size', 12)
+                .attr('dx', 15)
+                .attr('dy', 4)
+                .attr('fill', '#fff')
+                .attr('text-shadow', '0 1px 3px rgba(0,0,0,0.3)');
+            
+            // Add tooltips
+            node.append('title')
+                .text(d => {
+                    const props = Object.entries(d.properties)
+                        .map(([key, value]) => `${key}: ${value}`)
+                        .join('\n');
+                    return `${d.type}\n${props}`;
                 });
             
-            // Add the graph to the container
-            graphInstance(graphContainer);
-            
-            // Add event listeners for controls
-            document.getElementById('zoom-in').addEventListener('click', () => {
-                graphInstance.zoom(graphInstance.zoom() * 1.2, 800);
+            // Update positions on each tick
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+                
+                node
+                    .attr('cx', d => d.x)
+                    .attr('cy', d => d.y);
+                
+                label
+                    .attr('x', d => d.x)
+                    .attr('y', d => d.y);
             });
             
-            document.getElementById('zoom-out').addEventListener('click', () => {
-                graphInstance.zoom(graphInstance.zoom() / 1.2, 800);
-            });
-            
-            document.getElementById('center-graph').addEventListener('click', () => {
-                graphInstance.zoomToFit(400, 40);
-            });
-            
-            // Initial zoom to fit
-            setTimeout(() => {
-                graphInstance.zoomToFit(400, 40);
-            }, 500);
-            
-            // Store the graph instance globally
-            window.currentGraphInstance = graphInstance;
-        }
-
-        // Add memory graph functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const memoryGraphToggle = document.getElementById('memory-graph-toggle');
-            const memoryGraphPanel = document.getElementById('memory-graph-panel');
-            
-            // Initially hide the memory graph panel completely - not just with CSS
-            if (memoryGraphPanel) {
-                memoryGraphPanel.classList.add('hidden');
+            // Drag functions
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
             }
             
-            // Memory graph toggle handler - just update the UI, don't generate graph here
-            memoryGraphToggle.addEventListener('change', function() {
-                if (this.checked) {
-                    // Show info message about what will happen on file upload
-                    document.getElementById('memory-graph-container').innerHTML = `
-                        <div class="flex flex-col justify-center items-center h-full">
-                            <div class="w-16 h-16 bg-primary-700 rounded-full flex items-center justify-center mb-4">
-                                <i class="fas fa-check-circle text-white text-2xl"></i>
-                            </div>
-                            <p class="text-white text-lg font-medium mb-2">Memory Graph Enabled</p>
-                            <p class="text-gray-400 text-center max-w-md px-4">
-                                A memory graph will be generated when you upload a document. The graph will show 
-                                relationships between concepts, sections, and entities in your document.
-                            </p>
-                        </div>
-                    `;
-                } else {
-                    // Hide the memory graph panel
-                    memoryGraphPanel.classList.add('hidden');
-                }
-            });
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
             
-            // Remove the markdownUpdated event listener for memory graph generation
-            // We'll only generate the graph from backend data now
-        });
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+        }
 
-        // Update the displayMarkdown function to dispatch an event when markdown is updated
+        // Add the displayMarkdown function
         function displayMarkdown(markdown) {
-            // Store the raw markdown globally
+            // Store the raw markdown
             rawMarkdown = markdown;
             
-            const markdownDisplay = document.getElementById('markdown-content');
-            const showRenderedToggle = document.getElementById('show-rendered');
-            
-            // Display rendered or raw markdown based on toggle
-            if (showRenderedToggle && showRenderedToggle.checked) {
-                markdownDisplay.innerHTML = marked.parse(markdown);
-                
-                // Enable syntax highlighting
-                document.querySelectorAll('pre code').forEach((block) => {
-                    hljs.highlightBlock(block);
-                });
+            // Update the markdown content based on the show-rendered toggle
+            if (document.getElementById('show-rendered').checked) {
+                // Show rendered markdown
+                markdownContent.innerHTML = marked.parse(markdown);
             } else {
-                markdownDisplay.innerHTML = `<pre class="whitespace-pre-wrap text-sm font-mono bg-gray-50 p-4 rounded">${markdown}</pre>`;
+                // Show raw markdown
+                markdownContent.innerHTML = `<pre class="whitespace-pre-wrap text-sm font-mono bg-gray-50 p-4 rounded">${markdown}</pre>`;
+            }
+        }
+
+        // Add file preview function
+        function previewFile(file) {
+            const fileType = file.type;
+            const reader = new FileReader();
+            
+            if (fileType === 'application/pdf') {
+                // Preview PDF
+                const objectUrl = URL.createObjectURL(file);
+                fileContent.innerHTML = `
+                    <div class="pdf-preview">
+                        <iframe src="${objectUrl}" width="100%" height="600px" frameborder="0"></iframe>
+                    </div>
+                `;
+            } else if (fileType.startsWith('image/')) {
+                // Preview image
+                reader.onload = function(e) {
+                    fileContent.innerHTML = `
+                        <div class="text-center">
+                            <img src="${e.target.result}" alt="Preview" class="max-w-full h-auto rounded-lg shadow-lg">
+                        </div>
+                    `;
+                };
+                reader.readAsDataURL(file);
+            } else if (fileType === 'text/plain' || 
+                      fileType === 'application/rtf' || 
+                      fileType === 'application/msword' || 
+                      fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                // Preview text-based files
+                reader.onload = function(e) {
+                    fileContent.innerHTML = `
+                        <div class="text-preview">
+                            <pre class="whitespace-pre-wrap text-sm font-mono bg-gray-50 p-4 rounded">${e.target.result}</pre>
+                        </div>
+                    `;
+                };
+                reader.readAsText(file);
+            } else {
+                // Unsupported file type
+                fileContent.innerHTML = `
+                    <div class="text-center p-4">
+                        <i class="fas fa-file text-4xl text-gray-400 mb-2"></i>
+                        <p class="text-gray-500">Preview not available for this file type</p>
+                    </div>
+                `;
+            }
+        }
+
+        function processGraphData(graphData) {
+            // Initialize nodes and links arrays
+            const nodes = [];
+            const links = [];
+            const nodeMap = new Map(); // Add a map to track existing nodes
+            
+            // Process nodes
+            if (graphData.nodes) {
+                graphData.nodes.forEach((node) => {
+                    // Match the exact backend structure
+                    const nodeObj = {
+                        id: node.id,
+                        name: node.title, // Use title as the display name
+                        type: node.type,
+                        summary: node.summary,
+                        properties: {
+                            title: node.title,
+                            summary: node.summary,
+                            parent: node.parent // Include parent if it exists
+                        }
+                    };
+                    
+                    nodes.push(nodeObj);
+                    nodeMap.set(node.id, nodeObj);
+                });
             }
             
-            // Check if the memory graph toggle is checked
-            const memoryGraphToggle = document.getElementById('memory-graph-toggle');
+            // Process edges
+            if (graphData.edges) {
+                graphData.edges.forEach((edge) => {
+                    // Match the exact backend structure
+                    if (edge.source && edge.target && nodeMap.has(edge.source) && nodeMap.has(edge.target)) {
+                        links.push({
+                            source: edge.source,
+                            target: edge.target,
+                            type: edge.relation, // Use relation as the type
+                            properties: {
+                                relation: edge.relation
+                            }
+                        });
+                    } else {
+                        console.warn(`Skipping edge: Invalid source or target node`);
+                    }
+                });
+            }
             
-            // Dispatch a custom event that the markdown has been updated
-            window.dispatchEvent(new CustomEvent('markdownUpdated', { 
-                detail: { markdown: markdown }
-            }));
+            // If no edges exist, create hierarchical relationships based on node types and parent relationships
+            if (links.length === 0 && nodes.length > 0) {
+                nodes.forEach(node => {
+                    // If node has a parent, create a relationship
+                    if (node.properties.parent && nodeMap.has(node.properties.parent)) {
+                        links.push({
+                            source: node.id,
+                            target: node.properties.parent,
+                            type: 'is_part_of',
+                            properties: {
+                                relation: 'is_part_of'
+                            }
+                        });
+                    }
+                });
+            }
             
-            // Do NOT auto-generate memory graph here anymore - we'll only get it from the backend
+            console.log('Processed graph data:', { nodes, links });
+            return { nodes, links };
+        }
+
+        function renderMemoryGraph(graphData) {
+            const graphContainer = document.getElementById('memory-graph-container');
+            
+            // Validate graph data
+            if (!graphData || !Array.isArray(graphData.nodes) || !Array.isArray(graphData.links)) {
+                console.error('Invalid graph data structure:', graphData);
+                graphContainer.innerHTML = `
+                    <div class="flex flex-col justify-center items-center h-full">
+                        <div class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mb-4">
+                            <i class="fas fa-exclamation-triangle text-white text-2xl"></i>
+                        </div>
+                        <p class="text-white text-lg font-medium mb-2">Error Loading Graph</p>
+                        <p class="text-gray-400 text-center max-w-md px-4">
+                            The graph data structure is invalid or empty. Please try processing the document again.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                // Initialize the graph with specific colors for memory elements
+                let memoryGraph = ForceGraph()
+                    .graphData(graphData)
+                    .backgroundColor('#1a1a2e')
+                    .nodeId('id')
+                    .nodeLabel(node => {
+                        // Create a rich label with name and type
+                        const name = node.name || node.label || node.id || 'Unnamed Node';
+                        const type = node.type ? ` (${node.type})` : '';
+                        return `${name}${type}`;
+                    })
+                    .nodeColor(node => {
+                        // Use different colors based on node type
+                        switch (node.type?.toLowerCase()) {
+                            case 'section':
+                                return '#2196F3';  // Blue for sections
+                            case 'process':
+                                return '#4CAF50';  // Green for processes
+                            case 'entity':
+                                return '#FFC107';  // Amber for entities
+                            case 'concept':
+                                return '#9C27B0';  // Purple for concepts
+                            default:
+                                return '#607D8B';  // Blue-grey for others
+                        }
+                    })
+                    .nodeVal(node => {
+                        // Set node size based on type
+                        switch (node.type?.toLowerCase()) {
+                            case 'section':
+                                return 20;  // Larger for sections
+                            case 'process':
+                            case 'entity':
+                                return 15;  // Medium for processes and entities
+                            default:
+                                return 10;  // Default size
+                        }
+                    })
+                    .d3AlphaDecay(0.02)
+                    .d3VelocityDecay(0.2)
+                    .d3Force('link', d3.forceLink().id(d => d.id).distance(100).strength(0.3))
+                    .d3Force('charge', d3.forceManyBody().strength(-200))
+                    .d3Force('center', d3.forceCenter())
+                    .linkColor(() => '#ffffff')
+                    .linkDirectionalArrowLength(8)
+                    .linkDirectionalArrowRelPos(1)
+                    .linkDirectionalParticles(0)
+                    .linkWidth(1)
+                    .linkLabel(link => {
+                        // Create a rich label for the link
+                        const type = link.type || link.label || 'Related to';
+                        const properties = link.properties || {};
+                        const propsStr = Object.entries(properties)
+                            .map(([key, value]) => `${key}: ${value}`)
+                            .join(', ');
+                        return propsStr ? `${type} (${propsStr})` : type;
+                    })
+                    .linkCanvasObject((link, ctx, globalScale) => {
+                        // Force white color for links
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(link.source.x, link.source.y);
+                        ctx.lineTo(link.target.x, link.target.y);
+                        ctx.stroke();
+                    })
+                    .nodeCanvasObject((node, ctx, globalScale) => {
+                        try {
+                            // Node circle
+                            ctx.beginPath();
+                            ctx.arc(node.x || 0, node.y || 0, node.val || 10, 0, 2 * Math.PI);
+                            ctx.fillStyle = node.color || '#607D8B';
+                            ctx.fill();
+                            
+                            // Node border
+                            ctx.strokeStyle = '#ffffff';
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+                            
+                            // Node label if zoomed in
+                            if (globalScale > 0.8 && node.x !== undefined && node.y !== undefined) {
+                                const fontSize = 12 / globalScale;
+                                ctx.font = `${fontSize}px Arial`;
+                                
+                                // Create a rich label
+                                const name = node.name || node.label || node.id || 'Unnamed Node';
+                                const type = node.type ? ` (${node.type})` : '';
+                                const label = `${name}${type}`;
+                                
+                                // Draw text with background for better visibility
+                                const textWidth = ctx.measureText(label).width;
+                                const padding = 4;
+                                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                                ctx.fillRect(
+                                    node.x - textWidth/2 - padding,
+                                    node.y + (node.val || 10) + fontSize - padding,
+                                    textWidth + padding*2,
+                                    fontSize + padding*2
+                                );
+                                
+                                // Draw white text
+                                ctx.fillStyle = '#ffffff';
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillText(label, node.x, node.y + (node.val || 10) + fontSize);
+                            }
+                        } catch (err) {
+                            console.warn('Error rendering node:', err);
+                        }
+                    })
+                    (graphContainer);
+                
+                // Add zoom and center controls
+                document.getElementById('zoom-in')?.addEventListener('click', () => {
+                    memoryGraph.zoom(1.2);
+                });
+                
+                document.getElementById('zoom-out')?.addEventListener('click', () => {
+                    memoryGraph.zoom(0.8);
+                });
+                
+                document.getElementById('center-graph')?.addEventListener('click', () => {
+                    memoryGraph.zoomToFit(400, 20);
+                });
+                
+                // Add node click handler to show summary
+                memoryGraph.onNodeClick(node => {
+                    if (node) {
+                        const name = node.name || node.label || node.id || 'Unnamed Node';
+                        const type = node.type ? ` (${node.type})` : '';
+                        const summary = node.properties?.summary || node.summary || 'No summary available';
+                        const properties = node.properties || {};
+                        const propsStr = Object.entries(properties)
+                            .filter(([key]) => key !== 'summary')
+                            .map(([key, value]) => `${key}: ${value}`)
+                            .join('\n');
+                        
+                        const message = `Node: ${name}${type}\n\nSummary: ${summary}\n\nProperties:\n${propsStr}`;
+                        alert(message);
+                    }
+                });
+                
+                // Automatically zoom to fit on first render
+                setTimeout(() => {
+                    memoryGraph.zoomToFit(400, 20);
+                }, 500);
+                
+            } catch (error) {
+                console.error('Error rendering memory graph:', error);
+                graphContainer.innerHTML = `
+                    <div class="flex flex-col justify-center items-center h-full">
+                        <div class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mb-4">
+                            <i class="fas fa-exclamation-triangle text-white text-2xl"></i>
+                        </div>
+                        <p class="text-white text-lg font-medium mb-2">Error Rendering Graph</p>
+                        <p class="text-gray-400 text-center max-w-md px-4">
+                            An error occurred while rendering the graph. Please try again or contact support if the issue persists.
+                        </p>
+                    </div>
+                `;
+            }
         }
     </script>
     

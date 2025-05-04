@@ -426,7 +426,7 @@ class RTFAIProcessor:
         user_prompt = ""
         
         try:
-            with open('prompts/gpt4o_flow_chart_prompt.mustache', 'r') as template_file:
+            with open('prompts/document_processing_prompt.mustache', 'r') as template_file:
                 template_content = template_file.read()
                 
                 # Extract system prompt (between first {{! System prompt... }} and {{! User prompt... }})
@@ -443,6 +443,8 @@ class RTFAIProcessor:
                     user_prompt_with_comment = template_content[user_start:].strip()
                     user_prompt_lines = user_prompt_with_comment.split('\n')
                     user_prompt = '\n'.join(user_prompt_lines[1:]).strip()
+                    
+        
         except Exception as e:
             print(f"Error loading prompt template: {str(e)}, using fallback prompts")
             # Fallback to hardcoded prompts

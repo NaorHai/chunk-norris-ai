@@ -1,0 +1,320 @@
+import os
+import json
+from typing import Dict, Any
+import random
+import time
+
+# Try to import graphrag-sdk modules, but provide fallbacks if they're not available
+try:
+    from graphrag_sdk import KnowledgeGraph, Ontology
+    from graphrag_sdk.models.litellm import LiteModel
+    from graphrag_sdk.classes.model_config import KnowledgeGraphModelConfig
+    GRAPHRAG_AVAILABLE = True
+except ImportError:
+    print("Warning: graphrag-sdk or its dependencies not available. Using fallback for ontology graph.")
+    GRAPHRAG_AVAILABLE = False
+
+
+class OntologyGraphProcessor:
+    """
+    Processor that generates an ontology graph from markdown content using FalkorDB's GraphRAG-SDK
+    or a fallback mechanism if the SDK is not available
+    """
+    
+    def __init__(self, host: str = "127.0.0.1", port: int = 6379):
+        """
+        Initialize the ontology graph processor
+        
+        Args:
+            host: FalkorDB host (defaults to localhost)
+            port: FalkorDB port (defaults to 6379)
+        """
+        self.host = host
+        self.port = port
+        
+        print(f"Initializing OntologyGraphProcessor with host={host} and port={port}")
+        
+        # Initialize model only if graphrag-sdk is available
+        if GRAPHRAG_AVAILABLE:
+            try:
+                # Default to using LiteLLM as the generative model
+                print("GraphRAG SDK available, initializing LiteModel...")
+                self.model = LiteModel(model_name="gpt-4o")
+                print("LiteModel initialized successfully")
+            except Exception as e:
+                print(f"Warning: Failed to initialize LiteModel: {e}")
+                self.model = None
+        else:
+            print("Using fallback implementation for ontology graph processing")
+            self.model = None
+        
+    def generate_ontology_graph(self, markdown_content: str) -> Dict[str, Any]:
+        """
+        Generate an ontology graph from markdown content
+        
+        Args:
+            markdown_content: The markdown content to analyze
+            
+        Returns:
+            A dictionary containing the ontology graph structure
+        """
+        print("\n=== ONTOLOGY GRAPH GENERATION ===")
+        print(f"Received markdown content length: {len(markdown_content)} characters")
+        start_time = time.time()
+        
+        try:
+            if GRAPHRAG_AVAILABLE and self.model:
+                print("Using GraphRAG-SDK for ontology graph generation")
+                result = self._generate_with_graphrag(markdown_content)
+                print(f"Generated ontology graph with {len(result['nodes'])} nodes and {len(result['edges'])} edges")
+                return result
+            else:
+                print("Using fallback implementation for ontology graph generation")
+                result = self._generate_fallback_ontology(markdown_content)
+                print(f"Generated fallback ontology graph with {len(result['nodes'])} nodes and {len(result['edges'])} edges")
+                return result
+                
+        except Exception as e:
+            print(f"Error generating ontology graph: {str(e)}")
+            import traceback
+            print(f"Exception traceback: {traceback.format_exc()}")
+            return {"nodes": [], "edges": []}
+        finally:
+            elapsed_time = time.time() - start_time
+            print(f"Ontology graph generation completed in {elapsed_time:.2f} seconds")
+            print("=== END ONTOLOGY GRAPH GENERATION ===\n")
+    
+    def _generate_with_graphrag(self, markdown_content: str) -> Dict[str, Any]:
+        """
+        Generate an ontology graph using GraphRAG-SDK
+        
+        Args:
+            markdown_content: The markdown content to analyze
+            
+        Returns:
+            A dictionary containing the ontology graph structure
+        """
+        print("Starting ontology extraction with GraphRAG-SDK...")
+        
+        # Create an ontology from the markdown content
+        print("Creating ontology from text...")
+        start_time = time.time()
+        ontology = Ontology.from_text(
+            text=markdown_content,
+            model=self.model,
+            boundaries="Extract key entities, concepts, and relationships from the text."
+        )
+        llm_time = time.time() - start_time
+        print(f"LLM ontology extraction completed in {llm_time:.2f} seconds")
+        
+        # Create a temporary knowledge graph to visualize the ontology
+        print(f"Creating temporary knowledge graph connection to FalkorDB ({self.host}:{self.port})...")
+        kg = KnowledgeGraph(
+            name="temp_ontology",
+            model_config=KnowledgeGraphModelConfig.with_model(self.model),
+            ontology=ontology,
+            host=self.host,
+            port=self.port
+        )
+        
+        # Get the ontology structure as a graph
+        print("Converting ontology to JSON...")
+        ontology_graph = ontology.to_json()
+        
+        # Convert to visualization format (nodes and edges)
+        print("Converting to visualization format...")
+        visualization_graph = self._convert_to_visualization_format(ontology_graph)
+        
+        return visualization_graph
+    
+    def _generate_fallback_ontology(self, markdown_content: str) -> Dict[str, Any]:
+        """
+        Generate a simple fallback ontology graph by parsing markdown content
+        
+        Args:
+            markdown_content: The markdown content to analyze
+            
+        Returns:
+            A dictionary containing a simple ontology graph structure
+        """
+        print("Starting fallback ontology extraction...")
+        print("Parsing markdown content...")
+        
+        # Create a simple ontology by extracting headings and concepts
+        lines = markdown_content.split('\n')
+        
+        nodes = []
+        edges = []
+        entity_types = {}
+        
+        # Extract headings as main entities
+        heading_pattern = r'^(#+)\s+(.+)$'
+        import re
+        
+        print("Identifying headings, sections, and entities...")
+        current_section = None
+        section_count = 0
+        entity_count = 0
+        
+        for i, line in enumerate(lines):
+            # Check for headings
+            heading_match = re.match(heading_pattern, line)
+            if heading_match:
+                level = len(heading_match.group(1))
+                title = heading_match.group(2).strip()
+                node_id = f"entity_{len(nodes)}"
+                section_count += 1
+                
+                print(f"Found section: '{title}' (level {level})")
+                nodes.append({
+                    "id": node_id,
+                    "type": "Entity",
+                    "title": title,
+                    "summary": f"Section heading level {level}"
+                })
+                
+                # Connect to previous section if available
+                if current_section and level > 1:
+                    edges.append({
+                        "source": current_section,
+                        "target": node_id,
+                        "relation": "contains"
+                    })
+                
+                current_section = node_id
+            
+            # Extract potential entities from paragraph text
+            elif line.strip() and not line.startswith('```') and len(line) > 20:
+                # Look for capitalized terms that might be entities
+                potential_entities = re.findall(r'\b[A-Z][a-zA-Z]{2,}\b', line)
+                
+                for entity in potential_entities:
+                    if entity not in entity_types and len(entity) > 3:
+                        entity_id = f"entity_{len(nodes)}"
+                        entity_count += 1
+                        
+                        nodes.append({
+                            "id": entity_id,
+                            "type": "Entity",
+                            "title": entity,
+                            "summary": "Extracted entity"
+                        })
+                        
+                        entity_types[entity] = entity_id
+                        
+                        # Connect to current section
+                        if current_section:
+                            edges.append({
+                                "source": current_section,
+                                "target": entity_id,
+                                "relation": "mentions"
+                            })
+        
+        print(f"Extracted {section_count} sections and {entity_count} entities")
+        
+        # Ensure we have at least a few nodes and edges for visualization
+        if len(nodes) < 3:
+            print("Not enough entities found, creating default graph structure")
+            # Create some generic fallback nodes
+            base_nodes = [
+                {"id": "doc_1", "type": "Entity", "title": "Document", "summary": "Main document"},
+                {"id": "content_1", "type": "Entity", "title": "Content", "summary": "Document content"},
+                {"id": "metadata_1", "type": "Entity", "title": "Metadata", "summary": "Document metadata"}
+            ]
+            
+            base_edges = [
+                {"source": "doc_1", "target": "content_1", "relation": "contains"},
+                {"source": "doc_1", "target": "metadata_1", "relation": "has_property"}
+            ]
+            
+            nodes.extend(base_nodes)
+            edges.extend(base_edges)
+        
+        return {
+            "nodes": nodes,
+            "edges": edges
+        }
+    
+    def _convert_to_visualization_format(self, ontology_json: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Convert ontology JSON to visualization format with nodes and edges
+        
+        Args:
+            ontology_json: The ontology as JSON
+            
+        Returns:
+            A dictionary with nodes and edges for visualization
+        """
+        print("Converting ontology JSON to visualization format...")
+        
+        nodes = []
+        edges = []
+        node_id_map = {}  # Map entity names to node IDs
+        
+        # Process entity types (nodes)
+        entity_count = len(ontology_json.get("entity_types", []))
+        property_count = 0
+        relationship_count = 0
+        
+        print(f"Processing {entity_count} entity types...")
+        for i, entity_type in enumerate(ontology_json.get("entity_types", [])):
+            entity_name = entity_type.get("name", f"Unknown_{i}")
+            node_id = f"entity_{i}"
+            node_id_map[entity_name] = node_id
+            
+            nodes.append({
+                "id": node_id,
+                "type": "Entity",
+                "title": entity_name,
+                "summary": entity_type.get("description", "")
+            })
+            
+            # Process properties as child nodes
+            props = entity_type.get("properties", [])
+            property_count += len(props)
+            print(f"  Entity '{entity_name}' has {len(props)} properties")
+            
+            for j, prop in enumerate(props):
+                prop_id = f"{node_id}_prop_{j}"
+                prop_name = prop.get("name", f"Property_{j}")
+                prop_type = prop.get("type", "string")
+                
+                nodes.append({
+                    "id": prop_id,
+                    "type": "Property",
+                    "title": prop_name,
+                    "summary": f"Type: {prop_type}"
+                })
+                
+                edges.append({
+                    "source": node_id,
+                    "target": prop_id,
+                    "relation": "has_property"
+                })
+        
+        # Process relationships (edges)
+        relationships = ontology_json.get("relationships", [])
+        relationship_count = len(relationships)
+        print(f"Processing {relationship_count} relationships...")
+        
+        for i, relationship in enumerate(relationships):
+            source_entity = relationship.get("source", "")
+            target_entity = relationship.get("target", "")
+            relation_name = relationship.get("name", "relates_to")
+            
+            if source_entity in node_id_map and target_entity in node_id_map:
+                edges.append({
+                    "source": node_id_map[source_entity],
+                    "target": node_id_map[target_entity],
+                    "relation": relation_name
+                })
+        
+        print(f"Created visualization with {len(nodes)} nodes and {len(edges)} edges")
+        print(f"  Entity types: {entity_count}")
+        print(f"  Properties: {property_count}")
+        print(f"  Relationships: {relationship_count}")
+        
+        return {
+            "nodes": nodes,
+            "edges": edges
+        } 

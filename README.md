@@ -1,68 +1,93 @@
 # Document-to-Markdown Converter
 
-A web application that converts various document formats (PDF, DOCX, RTF, images) to Markdown.
+A Flask application that converts various document types (PDF, DOCX, RTF, images) to markdown format using both traditional OCR and AI-powered approaches.
 
 ## Features
 
-- Converts PDF, DOCX, RTF, and image files to markdown
-- Uses PaddleOCR for advanced OCR capabilities on images
-- Optional AI refinement using OpenAI GPT-4o Mini
-- "Chuck Norris AI" option to bypass OCR and directly process images with AI
-- Interactive web interface with file preview and side-by-side comparison
-- Rendered markdown preview option
+- Convert PDF, DOCX, RTF, and image files to markdown
+- RTF file specialized handling:
+  - Converts RTF to HTML for display in the left panel
+  - Processes RTF content with LLM in the right panel
+- Two processing modes:
+  - Traditional OCR for text extraction
+  - "Chuck Norris AI" that leverages OpenAI's GPT-4o Mini for intelligent content extraction
 
-## Setup
+## Modular Architecture
 
-1. Clone the repository:
-```bash
-git clone git@github.com:NaorHai/rendering.git
-cd rendering
+The application follows SOLID principles with the following structure:
+
+```
+.
+├── app.py                 # Main Flask application
+├── config.py              # API keys and global configuration
+├── services/              # Modular services
+│   ├── ai/                # AI processing services
+│   │   ├── html_renderer.py     # HTML to image rendering for AI
+│   │   └── rtf_ai_processor.py  # RTF-specific AI processing
+│   ├── config.py          # Service configuration and constants
+│   ├── factory.py         # Factory for creating appropriate processors
+│   ├── parsers/           # Document parsers
+│   │   ├── file_parser_interface.py  # Interface for file parsers
+│   │   └── rtf_parser.py            # RTF-specific parser
+│   └── service_registry.py  # Service registry
+├── static/               # Static files
+│   └── rtf_previews/     # Generated HTML previews for RTF files
+├── templates/            # Flask templates
+│   └── index.html        # Main application UI
+└── uploads/              # Uploaded files
+    └── images/           # Extracted and uploaded images
 ```
 
-2. Create a virtual environment and install dependencies:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
+## RTF File Processing Flow
+
+1. RTF files are parsed to extract text and embedded images
+2. The RTF is converted to HTML for display in the left panel
+3. For AI processing:
+   - HTML is rendered to an image
+   - Image is sent to GPT-4o Mini for intelligent parsing
+   - Embedded images are processed separately
+4. The results are combined into a comprehensive markdown document
+
+## API Usage
+
+### Upload Endpoint
+
+```
+POST /upload
 ```
 
-3. Setup API keys:
-```bash
-cp config.template.py config.py
-# Edit config.py with your API keys
+**Parameters:**
+
+- `file`: The file to convert (multipart/form-data)
+- `use_ai_refinement`: Whether to refine the output with AI (default: true)
+- `use_chuck_norris_ai`: Whether to use GPT-4o Mini for processing (default: false)
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "filename": "original_filename.rtf",
+  "markdown": "# Converted markdown content...",
+  "html_preview": "/static/rtf_previews/rtf_preview_abcdef123456.html",
+  "used_ai_refinement": true,
+  "used_chuck_norris_ai": true,
+  "is_rtf": true
+}
 ```
 
-4. Run the application:
-```bash
-python app.py
-```
+## Running the Application
 
-5. Open your browser and navigate to:
-```
-http://localhost:8090
-```
+1. Install the requirements:
+   ```
+   pip install -r requirements.txt
+   ```
 
-## Architecture
+2. Copy `config.template.py` to `config.py` and add your OpenAI API key.
 
-The application follows SOLID principles with a modular design:
+3. Run the application:
+   ```
+   python app.py
+   ```
 
-- `services/`: Service components organized by functionality
-  - `ai/`: AI services for content refinement
-  - `ocr/`: OCR engines for text extraction from images
-  - `parsers/`: File format parsers
-  - `converters/`: Format conversion logic
-
-- `app.py`: Flask web application
-- `templates/`: Web interface
-
-## Requirements
-
-- Python 3.8+
-- Flask
-- OpenAI API key (for AI refinement)
-- PaddleOCR
-- PyTesseract (with Tesseract OCR installed)
-
-## License
-
-MIT
+4. The application will be available at `http://localhost:8080`. 

@@ -12,7 +12,11 @@ from services.parsers import (
     TextParser
 )
 from services.ai import RTFAIProcessor
-from file_parsers import process_pdf_as_image_with_gpt4o, process_image_with_gpt4o, process_doc_as_image_with_gpt4o
+from services.parsers import (
+    process_pdf_as_image_with_gpt4o, 
+    process_image_with_gpt4o, 
+    process_doc_as_image_with_gpt4o
+)
 
 
 class DocumentProcessorFactory:

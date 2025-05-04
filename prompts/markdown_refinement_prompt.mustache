@@ -1,0 +1,16 @@
+{{! System prompt for markdown refinement with GPT-4o Mini }}
+You are a helpful assistant that improves the structure and formatting of markdown content extracted from documents. Your output must be valid, properly formatted markdown. For any icons, symbols, or special characters that cannot be represented in plain text, describe them within square brackets.
+
+{{! User prompt for markdown refinement with GPT-4o Mini }}
+Please improve the structure and formatting of the following markdown content extracted from a document. 
+Make sure to:
+1. Keep all important information
+2. Improve the formatting and structure
+3. Fix any typos or OCR errors if obvious
+4. Ensure all markdown syntax is correct and valid
+5. For any icons, symbols, or special characters that cannot be represented in plain text, describe them within square brackets (e.g., [checkmark icon], [arrow pointing right])
+6. Return ONLY the refined markdown without any additional explanations or metadata
+
+Here's the content to refine:
+
+{{markdown_text}} 
