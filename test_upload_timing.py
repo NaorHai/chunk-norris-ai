@@ -10,7 +10,7 @@ def test_upload_timing():
     """
     Test the timing and data flow of the ontology graph generation
     """
-    logger.info("\n=== TESTING UPLOAD TIMING ===")
+    logger.info("=== TESTING UPLOAD TIMING ===")
     
     # Sample markdown content
     markdown_content = """
@@ -46,28 +46,28 @@ def test_upload_timing():
     logger.info(f"Found {len(data['entities'])} entities and {len(data['relations'])} relations")
     
     # Step 2: Create graph queries
-    logger.info("\nStep 2: Creating graph queries...")
+    logger.info("Step 2: Creating graph queries...")
     start_time = time.time()
     queries = processor.create_graph_queries(data["entities"], data["relations"])
     logger.info(f"Query creation time: {time.time() - start_time:.2f} seconds")
     logger.info(f"Created {len(queries)} queries")
     
     # Step 3: Execute queries
-    logger.info("\nStep 3: Executing queries...")
+    logger.info("Step 3: Executing queries...")
     start_time = time.time()
     graph_result = processor.execute_graph_queries(queries)
     logger.info(f"Query execution time: {time.time() - start_time:.2f} seconds")
     logger.info(f"Graph result: {graph_result}")
     
     # Step 4: Format for UI
-    logger.info("\nStep 4: Formatting for UI...")
+    logger.info("Step 4: Formatting for UI...")
     start_time = time.time()
     ui_formatted = processor._format_graph_for_ui(graph_result["nodes"], graph_result["edges"])
     logger.info(f"UI formatting time: {time.time() - start_time:.2f} seconds")
     logger.info(f"UI formatted result: {ui_formatted}")
     
     # Total time
-    logger.info("\n=== TIMING SUMMARY ===")
+    logger.info("=== TIMING SUMMARY ===")
     logger.info(f"Total processing time: {time.time() - start_time:.2f} seconds")
     logger.info(f"Final graph has {len(ui_formatted['nodes'])} nodes and {len(ui_formatted['edges'])} edges")
 

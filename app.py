@@ -8,11 +8,16 @@ import argparse
 import time
 import sys
 import logging
+import requests
+import json
+import concurrent.futures
+from typing import Dict, Any, Tuple
 
 # Import our new modular services
 from services.factory import DocumentProcessorFactory
 from services.ai import MemoryGraphProcessor, OntologyGraphProcessor
 from logging_config import setup_logging
+from config import OPENAI_API_KEY  # Import the API key from config
 
 # Setup logging
 logger = setup_logging()
@@ -62,6 +67,103 @@ def uploaded_image(filename):
     """Serve uploaded images"""
     logger.info(f"Serving image: {filename}")
     return send_from_directory(app.config['IMAGES_FOLDER'], filename)
+
+def generate_document_summary(markdown_content: str) -> str:
+    """
+    Generate a document summary using GPT-4o Mini.
+    
+    Args:
+        markdown_content: The markdown content to summarize
+        
+    Returns:
+        A string containing the document summary
+    """
+    try:
+        # Load the document summary template
+        logger.info("🔹 Loading document summary template...")
+        template_path = 'prompts/document_summary.mustache'
+        if not os.path.exists(template_path):
+            logger.error(f"❌ Document summary template not found at {template_path}")
+            return None
+            
+        with open(template_path, 'r') as template_file:
+            template_content = template_file.read()
+            
+        # Replace placeholder with actual content
+        prompt = template_content.replace("{{content}}", markdown_content)
+        
+        # Call OpenAI API
+        api_key = OPENAI_API_KEY
+        if not api_key:
+            logger.error("❌ OpenAI API key not found")
+            return None
+            
+        api_url = "https://api.openai.com/v1/chat/completions"
+        
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        }
+        
+        payload = {
+            "model": "gpt-4o-mini",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            "temperature": 0.2
+        }
+        
+        logger.info("🔹 Sending request to OpenAI API...")
+        response = requests.post(api_url, headers=headers, json=payload)
+        
+        if response.status_code != 200:
+            logger.error(f"❌ OpenAI API error: {response.status_code}")
+            logger.error(f"Response: {response.text}")
+            return None
+            
+        result = response.json()
+        
+        if 'choices' not in result or not result['choices']:
+            logger.error("❌ No choices in OpenAI API response")
+            return None
+            
+        summary = result['choices'][0]['message']['content']
+        logger.info(f"✅ Document summary generated successfully")
+        logger.info(f"📝 Summary length: {len(summary)} characters")
+        
+        return summary
+        
+    except Exception as e:
+        logger.error(f"❌ Error generating document summary: {str(e)}")
+        import traceback
+        logger.error(f"❌ Exception traceback: {traceback.format_exc()}")
+        return None
+
+def process_document_summary(markdown_content: str) -> Tuple[str, float]:
+    """Process document summary in parallel"""
+    start_time = time.time()
+    summary = generate_document_summary(markdown_content)
+    end_time = time.time()
+    return summary, end_time - start_time
+
+def process_memory_graph(markdown_content: str) -> Tuple[Dict[str, Any], float]:
+    """Process memory graph in parallel"""
+    start_time = time.time()
+    memory_graph_processor = MemoryGraphProcessor()
+    memory_graph = memory_graph_processor.generate_memory_graph(markdown_content)
+    end_time = time.time()
+    return memory_graph, end_time - start_time
+
+def process_ontology_graph(markdown_content: str) -> Tuple[Dict[str, Any], float]:
+    """Process ontology graph in parallel"""
+    start_time = time.time()
+    ontology_graph_processor = OntologyGraphProcessor(host="127.0.0.1", port=6379)
+    ontology_graph = ontology_graph_processor.generate_ontology_graph(markdown_content)
+    end_time = time.time()
+    return ontology_graph, end_time - start_time
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -187,11 +289,19 @@ def upload_file():
                     # Set memory_graph to None if there's an error
                     memory_graph = None
             
+            # Generate document summary
+            logger.info(f"🔹 STEP 4: Generating document summary")
+            document_summary = generate_document_summary(markdown_content)
+            if document_summary:
+                logger.info(f"✅ Document summary generated successfully")
+            else:
+                logger.warning(f"⚠️ Document summary generation failed")
+            
             # Generate ontology graph if requested
             if generate_ontology_graph:
                 try:
                     # Initialize ontology graph processor
-                    logger.info(f"🔹 STEP 4: Generating ontology graph")
+                    logger.info(f"🔹 STEP 5: Generating ontology graph")
                     ontology_graph_processor = OntologyGraphProcessor(host="127.0.0.1", port=6379)
                     ontology_graph = ontology_graph_processor.generate_ontology_graph(markdown_content)
                     if ontology_graph and 'nodes' in ontology_graph:
@@ -233,7 +343,9 @@ def upload_file():
                 'used_chuck_norris_ai': use_chuck_norris_ai,
                 'is_rtf': is_rtf,
                 'memory_graph': memory_graph,
-                'ontology_graph': ontology_graph
+                'ontology_graph': ontology_graph,
+                'document_summary': document_summary,
+                'processing_time': round(total_time, 2)
             })
         
         # Standard processing flow for non-Chuck Norris AI mode
@@ -272,11 +384,19 @@ def upload_file():
                 # Set memory_graph to None if there's an error
                 memory_graph = None
         
+        # Generate document summary
+        logger.info(f"🔹 STEP 4: Generating document summary")
+        document_summary = generate_document_summary(markdown_content)
+        if document_summary:
+            logger.info(f"✅ Document summary generated successfully")
+        else:
+            logger.warning(f"⚠️ Document summary generation failed")
+        
         # Generate ontology graph if requested
         if generate_ontology_graph:
             try:
                 # Initialize ontology graph processor
-                logger.info(f"🔹 STEP 4: Generating ontology graph")
+                logger.info(f"🔹 STEP 5: Generating ontology graph")
                 ontology_graph_processor = OntologyGraphProcessor(host="127.0.0.1", port=6379)
                 ontology_graph = ontology_graph_processor.generate_ontology_graph(markdown_content)
                 if ontology_graph and 'nodes' in ontology_graph:
@@ -322,7 +442,9 @@ def upload_file():
                 'used_chuck_norris_ai': use_chuck_norris_ai,
                 'is_rtf': False,
                 'memory_graph': memory_graph,
-                'ontology_graph': ontology_graph
+                'ontology_graph': ontology_graph,
+                'document_summary': document_summary,
+                'processing_time': round(total_time, 2)
             })
         else:
             # For non-images that aren't RTF with html_preview, clean up after conversion
@@ -360,7 +482,9 @@ def upload_file():
                 'used_chuck_norris_ai': use_chuck_norris_ai,
                 'is_rtf': is_rtf,
                 'memory_graph': memory_graph,
-                'ontology_graph': ontology_graph
+                'ontology_graph': ontology_graph,
+                'document_summary': document_summary,
+                'processing_time': round(total_time, 2)
             })
     except Exception as e:
         logger.error(f"❌ ERROR processing file: {str(e)}")

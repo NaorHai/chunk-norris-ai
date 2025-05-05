@@ -580,7 +580,7 @@
                                     <input class="w-5 h-5 text-secondary-500 focus:ring-secondary-400" type="radio" id="use-chuck-norris-ai" name="processing-mode" value="chuck-norris-ai">
                                     <label class="ml-2 text-gray-700" for="use-chuck-norris-ai">
                                         <span class="font-semibold flex items-center">
-                                            Chuck Norris AI
+                                            Chunk Norris AI
                                             <span class="inline-flex ml-2 bg-secondary-500 text-white rounded-full h-6 w-6 items-center justify-center">💪</span>
                                         </span>
                                     </label>
@@ -596,7 +596,7 @@
                                     <input class="w-5 h-5 text-red-500 focus:ring-red-400" type="radio" id="use-chuck-norris-ai-pro" name="processing-mode" value="chuck-norris-ai-pro">
                                     <label class="ml-2 text-gray-700" for="use-chuck-norris-ai-pro">
                                         <span class="font-semibold flex items-center">
-                                            Chuck Norris AI PRO
+                                            Chunk Norris AI PRO
                                             <span class="inline-flex ml-2 bg-red-500 text-white rounded-full px-2 text-xs font-bold">PRO</span>
                                         </span>
                                     </label>
@@ -637,10 +637,39 @@
                     <div id="file-info" class="hidden mt-6">
                         <p class="bg-gray-50 inline-block px-4 py-2 rounded-lg"><strong>Selected File:</strong> <span id="file-name" class="font-medium"></span></p>
                     </div>
+                    <div id="processing-time" class="hidden mt-2">
+                        <p class="bg-green-50 text-green-700 inline-block px-4 py-2 rounded-lg">
+                            <i class="fas fa-clock mr-2"></i>
+                            <span id="processing-time-value"></span>
+                        </p>
+                    </div>
                     <div class="loader hidden w-12 h-12 border-4 border-gray-200 border-t-primary-500 rounded-full animate-spin mx-auto mt-6" id="loader"></div>
                     <div class="chuck-norris-loader" id="chuck-norris-loader">
                         <img src="/static/images/chuck_norris_loading.svg" alt="Chuck Norris AI loading">
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Summary Section -->
+        <div id="document-summary-panel" class="mb-6 bg-white rounded-xl shadow-card p-5 overflow-hidden border border-gray-100">
+            <div class="border-b border-gray-100 pb-3 mb-5 flex justify-between items-center">
+                <h3 class="text-xl font-semibold text-gray-800">Document Summary</h3>
+                <div class="flex items-center">
+                    <button id="refresh-summary" class="text-sm px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors" title="Refresh Summary">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="document-summary-content" class="prose prose-primary max-w-none">
+                <div class="flex flex-col justify-center items-center h-full">
+                    <div class="w-16 h-16 bg-primary-700 rounded-full flex items-center justify-center mb-4">
+                        <i class="fas fa-file-alt text-white text-2xl"></i>
+                    </div>
+                    <p class="text-gray-600 text-lg font-medium mb-2">Document Summary</p>
+                    <p class="text-gray-400 text-center max-w-md px-4">
+                        A concise summary of the document will appear here after processing.
+                    </p>
                 </div>
             </div>
         </div>
@@ -972,16 +1001,19 @@
                 return response.json();
             })
             .then(data => {
-                // Hide loaders
+                // Hide loading indicators
                 loader.classList.remove('block');
                 loader.classList.add('hidden');
                 chuckNorrisLoader.style.display = 'none';
                 
                 if (data.success) {
-                    // Store the raw markdown
-                    rawMarkdown = data.markdown;
+                    // Show processing time
+                    const processingTimeDiv = document.getElementById('processing-time');
+                    const processingTimeValue = document.getElementById('processing-time-value');
+                    processingTimeDiv.classList.remove('hidden');
+                    processingTimeValue.textContent = `Processing completed in ${data.processing_time} seconds`;
                     
-                    // Use the displayMarkdown function instead of direct DOM manipulation
+                    // Display the markdown content
                     displayMarkdown(data.markdown);
                     
                     // Handle memory graph if enabled and data is present
@@ -1025,6 +1057,11 @@
                     // For image files, update the src to the server path if needed
                     if (data.imagePath) {
                         updateImagePathsInMarkdown(data.imagePath);
+                    }
+                    
+                    // Handle document summary if present
+                    if (data.document_summary) {
+                        displayDocumentSummary(data.document_summary);
                     }
                 } else {
                     // Show error
@@ -1191,7 +1228,33 @@
                 .append('line')
                 .attr('stroke', '#fff')
                 .attr('stroke-opacity', 0.8)
-                .attr('stroke-width', 2);
+                .attr('stroke-width', 2)
+                .attr('marker-end', 'url(#arrowhead)');
+            
+            // Add arrowhead marker definition
+            svg.append('defs').append('marker')
+                .attr('id', 'arrowhead')
+                .attr('viewBox', '-0 -5 10 10')
+                .attr('refX', 15)
+                .attr('refY', 0)
+                .attr('orient', 'auto')
+                .attr('markerWidth', 6)
+                .attr('markerHeight', 6)
+                .attr('xoverflow', 'visible')
+                .append('svg:path')
+                .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
+                .attr('fill', '#fff');
+            
+            // Add edge type labels
+            const edgeLabels = svg.append('g')
+                .selectAll('text')
+                .data(graphData.links)
+                .enter()
+                .append('text')
+                .text(d => d.type)
+                .attr('font-size', 10)
+                .attr('fill', '#fff')
+                .attr('text-shadow', '0 1px 3px rgba(0,0,0,0.3)');
             
             // Create nodes
             const node = svg.append('g')
@@ -1252,6 +1315,11 @@
                 label
                     .attr('x', d => d.x)
                     .attr('y', d => d.y);
+                
+                // Update edge label positions
+                edgeLabels
+                    .attr('x', d => (d.source.x + d.target.x) / 2)
+                    .attr('y', d => (d.source.y + d.target.y) / 2);
             });
             
             // Drag functions
@@ -1585,6 +1653,75 @@
                 `;
             }
         }
+
+        // Add document summary handling
+        const documentSummaryPanel = document.getElementById('document-summary-panel');
+        const documentSummaryContent = document.getElementById('document-summary-content');
+        const refreshSummaryBtn = document.getElementById('refresh-summary');
+
+        // Function to display document summary
+        function displayDocumentSummary(summary) {
+            if (summary) {
+                documentSummaryPanel.classList.remove('hidden');
+                documentSummaryContent.innerHTML = `
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <p class="text-gray-700">${summary}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Function to refresh summary
+        async function refreshDocumentSummary() {
+            if (!rawMarkdown) return;
+            
+            // Show loading state
+            documentSummaryContent.innerHTML = `
+                <div class="flex flex-col justify-center items-center h-full">
+                    <div class="w-16 h-16 bg-primary-700 rounded-full flex items-center justify-center mb-4 animate-pulse">
+                        <i class="fas fa-sync-alt text-white text-2xl"></i>
+                    </div>
+                    <p class="text-gray-600 text-lg font-medium mb-2">Generating Summary...</p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch('/generate_summary', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        markdown: rawMarkdown
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Failed to generate summary');
+                
+                const data = await response.json();
+                if (data.success && data.summary) {
+                    displayDocumentSummary(data.summary);
+                } else {
+                    throw new Error('No summary generated');
+                }
+            } catch (error) {
+                console.error('Error refreshing summary:', error);
+                documentSummaryContent.innerHTML = `
+                    <div class="flex flex-col justify-center items-center h-full">
+                        <div class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mb-4">
+                            <i class="fas fa-exclamation-triangle text-white text-2xl"></i>
+                        </div>
+                        <p class="text-gray-600 text-lg font-medium mb-2">Error Generating Summary</p>
+                        <p class="text-gray-400 text-center max-w-md px-4">
+                            Failed to generate summary. Please try again.
+                        </p>
+                    </div>
+                `;
+            }
+        }
+
+        // Add event listener for refresh button
+        refreshSummaryBtn?.addEventListener('click', refreshDocumentSummary);
     </script>
     
     <!-- Chuck Norris AI PRO Popup -->

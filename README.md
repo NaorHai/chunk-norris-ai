@@ -1,93 +1,175 @@
-# Document-to-Markdown Converter
+# Chunk Norris AI - Document Processing System
 
-A Flask application that converts various document types (PDF, DOCX, RTF, images) to markdown format using both traditional OCR and AI-powered approaches.
+A powerful document processing system that converts various document formats to markdown, generates interactive visualizations, and provides AI-powered document analysis.
 
-## Features
+![Chunk Norris AI](static/images/logo.png)
 
-- Convert PDF, DOCX, RTF, and image files to markdown
-- RTF file specialized handling:
-  - Converts RTF to HTML for display in the left panel
-  - Processes RTF content with LLM in the right panel
-- Two processing modes:
-  - Traditional OCR for text extraction
-  - "Chuck Norris AI" that leverages OpenAI's GPT-4o Mini for intelligent content extraction
+## 🌟 Features
 
-## Modular Architecture
+### Core Features
+- **Document Conversion**: Convert PDF, DOCX, RTF, and images to markdown
+- **AI-Powered Processing**: Two processing modes available:
+  - **Tesseract (OCR) & AI**: Uses Tesseract for text extraction and GPT-4o Mini for structure improvement
+  - **Chunk Norris AI**: Direct AI interpretation of document content, bypassing OCR
+- **Document Summary**: AI-generated concise summaries of document content
+- **Interactive Visualizations**:
+  - **Memory Graph**: Visual representation of document structure and relationships
+  - **Ontology Graph**: Entity-relationship visualization using FalkorDB's GraphRAG-SDK
 
-The application follows SOLID principles with the following structure:
+### Technical Features
+- Parallel processing for improved performance
+- Real-time document preview
+- Interactive graph visualizations
+- Responsive web interface
+- RESTful API endpoints
 
-```
-.
-├── app.py                 # Main Flask application
-├── config.py              # API keys and global configuration
-├── services/              # Modular services
-│   ├── ai/                # AI processing services
-│   │   ├── html_renderer.py     # HTML to image rendering for AI
-│   │   └── rtf_ai_processor.py  # RTF-specific AI processing
-│   ├── config.py          # Service configuration and constants
-│   ├── factory.py         # Factory for creating appropriate processors
-│   ├── parsers/           # Document parsers
-│   │   ├── file_parser_interface.py  # Interface for file parsers
-│   │   └── rtf_parser.py            # RTF-specific parser
-│   └── service_registry.py  # Service registry
-├── static/               # Static files
-│   └── rtf_previews/     # Generated HTML previews for RTF files
-├── templates/            # Flask templates
-│   └── index.html        # Main application UI
-└── uploads/              # Uploaded files
-    └── images/           # Extracted and uploaded images
-```
+## 🚀 Getting Started
 
-## RTF File Processing Flow
+### Prerequisites
+- Python 3.8+
+- Redis (for FalkorDB)
+- OpenAI API key
 
-1. RTF files are parsed to extract text and embedded images
-2. The RTF is converted to HTML for display in the left panel
-3. For AI processing:
-   - HTML is rendered to an image
-   - Image is sent to GPT-4o Mini for intelligent parsing
-   - Embedded images are processed separately
-4. The results are combined into a comprehensive markdown document
+### FalkorDB Setup (Required for Ontology Graph Feature)
 
-## API Usage
+1. Install Redis:
+```bash
+# Using Docker (recommended)
+docker run -d -p 6379:6379 redis
 
-### Upload Endpoint
+# Or install Redis directly:
+# macOS
+brew install redis
+brew services start redis
 
-```
-POST /upload
+# Ubuntu/Debian
+sudo apt-get install redis-server
+sudo systemctl start redis-server
+
+# Windows
+# Download from https://github.com/microsoftarchive/redis/releases
 ```
 
-**Parameters:**
-
-- `file`: The file to convert (multipart/form-data)
-- `use_ai_refinement`: Whether to refine the output with AI (default: true)
-- `use_chuck_norris_ai`: Whether to use GPT-4o Mini for processing (default: false)
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "filename": "original_filename.rtf",
-  "markdown": "# Converted markdown content...",
-  "html_preview": "/static/rtf_previews/rtf_preview_abcdef123456.html",
-  "used_ai_refinement": true,
-  "used_chuck_norris_ai": true,
-  "is_rtf": true
-}
+2. Install FalkorDB:
+```bash
+pip install falkordb
 ```
 
-## Running the Application
+3. Verify FalkorDB installation:
+```bash
+python -c "from falkordb import FalkorDB; db = FalkorDB(); print('FalkorDB connection successful!')"
+```
 
-1. Install the requirements:
-   ```
-   pip install -r requirements.txt
-   ```
+For more detailed FalkorDB setup and configuration, visit the [official FalkorDB documentation](https://falkordb.com/docs).
 
-2. Copy `config.template.py` to `config.py` and add your OpenAI API key.
+### Installation
 
-3. Run the application:
-   ```
-   python app.py
-   ```
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/chunk-norris-ai.git
+cd chunk-norris-ai
+```
 
-4. The application will be available at `http://localhost:8080`. 
+2. Create and activate a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+4. Set up environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your OpenAI API key and other configurations
+```
+
+5. Start Redis (required for FalkorDB):
+```bash
+# Using Docker
+docker run -d -p 6379:6379 redis
+
+# Or install and run Redis directly
+# Follow instructions at https://redis.io/download
+```
+
+### Running the Application
+
+1. Start the Flask server:
+```bash
+python app.py
+```
+
+Or use the provided start script:
+```bash
+./start.sh
+```
+
+2. Access the web interface:
+```
+http://localhost:8080
+```
+
+
+## 📊 Performance
+
+The system uses parallel processing for:
+- Document summary generation
+- Memory graph generation
+- Ontology graph generation
+
+This significantly reduces processing time compared to sequential processing.
+
+## 🎨 UI Features
+
+- Drag-and-drop file upload
+- Real-time document preview
+- Interactive graph visualizations with:
+  - Zoom controls
+  - Node highlighting
+  - Relationship exploration
+  - Property inspection
+- Dark mode graph visualization
+- Responsive design
+
+## 🔧 Configuration
+
+Key configuration options in `.env`:
+```
+OPENAI_API_KEY=your_api_key_here
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+FLASK_HOST=127.0.0.1
+FLASK_PORT=8080
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- OpenAI for GPT-4o Mini
+- FalkorDB for GraphRAG-SDK
+- Tesseract OCR
+- Flask framework
+- ForceGraph for visualizations
+
+## 📞 Support
+
+For support, please open an issue in the GitHub repository or contact the maintainers.
+
+---
+
+Made with 💪 by Chunk Norris AI Team 
