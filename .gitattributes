@@ -1,0 +1,4 @@
+static/** linguist-generated
+templates/** linguist-generated
+*.py linguist-language=Python
+tests/** linguist-language=Python
